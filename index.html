@@ -1,0 +1,1565 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hvittingsfoss Alpinklubb - HMS &amp; Driftsportal</title>
+    <meta
+      name="description"
+      content="Internkontroll, beredskap og driftsportal for Hvittingsfoss Alpinklubb."
+    />
+    <meta property="og:title" content="Hvittingsfoss Alpinklubb - HMS &amp; Driftsportal" />
+    <meta
+      property="og:description"
+      content="Internkontroll, beredskap og driftsportal for Hvittingsfoss Alpinklubb."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0B1B32" />
+
+    <!-- Google Fonts: Outfit (display), Plus Jakarta Sans (UI/body), JetBrains Mono (tabular numbers/coords) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Outfit:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS via CDN (enkel publisering i én samlet fil for GitHub Pages) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['"Outfit"', 'system-ui', 'sans-serif'],
+              sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            },
+            colors: {
+              alpine: {
+                950: '#071224',
+                900: '#0B1B32',
+                800: '#13294B',
+                700: '#1D3B6B',
+                600: '#0284C7',
+                500: '#0EA5E9',
+                100: '#E0F2FE',
+                50: '#F4F7FB',
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        background-color: #f4f7fb;
+        color: #0b1b32;
+        -webkit-font-smoothing: antialiased;
+      }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+      .text-balance {
+        text-wrap: balance;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      /* Diskret topografisk bakgrunnsmønster tilpasset alpinanlegg */
+      .alpine-topo-bg {
+        background-color: #0b1b32;
+        background-image:
+          radial-gradient(circle at 85% 15%, rgba(14, 165, 233, 0.2) 0%, transparent 45%),
+          radial-gradient(circle at 15% 85%, rgba(2, 132, 199, 0.16) 0%, transparent 40%);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col selection:bg-sky-200 selection:text-alpine-950">
+    <!-- Laster inn / verifiserer innlogging -->
+    <div
+      id="loading-screen"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-alpine-900 text-white px-6"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="w-14 h-14 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center mb-4">
+        <svg class="w-8 h-8 text-sky-300" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M4 25L13.5 8L19.5 18.5L23 13L28 25H4Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" />
+          <path d="M10.5 14L13.5 16L16.5 13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <p class="font-display text-lg font-semibold tracking-tight">Hvittingsfoss Alpinklubb</p>
+      <p class="text-sm text-sky-200/80 mt-1">Kontrollerer tilgang...</p>
+    </div>
+
+    <!-- INNLOGGINGSSIDE (vises kun når bruker ikke er logget inn) -->
+    <main
+      id="login-view"
+      class="hidden min-h-screen alpine-topo-bg flex flex-col justify-center items-center px-4 py-10 sm:px-6"
+    >
+      <div class="w-full max-w-md">
+        <!-- Klubbhode -->
+        <div class="text-center mb-8">
+          <div
+            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 border border-white/20 text-sky-300 mb-5 shadow-lg"
+          >
+            <svg class="w-9 h-9" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <path
+                d="M3.5 25.5L13.5 7.5L19.5 18.5L23 12.5L28.5 25.5H3.5Z"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M10 14L13.5 16.5L17 13.5"
+                stroke="#FFFFFF"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <h1 class="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight text-balance">
+            Hvittingsfoss Alpinklubb
+          </h1>
+          <p class="text-sky-200 text-base font-medium mt-1.5">HMS &amp; Driftsportal</p>
+        </div>
+
+        <!-- Innloggingskort -->
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-6 sm:p-8">
+          <div class="mb-6">
+            <h2 class="font-display text-xl font-bold text-alpine-900">Logg inn i portalen</h2>
+            <p class="text-sm text-slate-600 mt-1">
+              Kun autorisert personell og styremedlemmer har tilgang til internkontroll og driftsdokumenter.
+            </p>
+          </div>
+
+          <!-- Feilmelding -->
+          <div
+            id="login-error"
+            class="hidden mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 flex items-start gap-3"
+            role="alert"
+          >
+            <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span id="login-error-text" class="font-medium leading-snug"></span>
+          </div>
+
+          <form id="login-form" class="space-y-4" novalidate>
+            <div>
+              <label for="login-email" class="block text-sm font-semibold text-alpine-900 mb-1.5">
+                E-postadresse
+              </label>
+              <input
+                id="login-email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                placeholder="navn@hvittingsfossil.no"
+                class="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-alpine-900 placeholder:text-slate-400 text-base focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label for="login-password" class="block text-sm font-semibold text-alpine-900 mb-1.5">
+                Passord
+              </label>
+              <div class="relative">
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                  placeholder="Skriv inn passord"
+                  class="w-full min-h-[48px] pl-4 pr-12 py-2.5 rounded-xl border border-slate-300 bg-white text-alpine-900 placeholder:text-slate-400 text-base focus:outline-none focus:ring-2 focus:ring-sky-600 focus:border-sky-600 transition-colors"
+                />
+                <button
+                  type="button"
+                  id="toggle-password-btn"
+                  aria-label="Vis eller skjul passord"
+                  class="absolute right-1.5 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-slate-500 hover:text-alpine-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 transition-colors"
+                >
+                  <svg id="eye-icon-open" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg id="eye-icon-closed" class="w-5 h-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                    <line x1="2" y1="2" x2="22" y2="22" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              id="login-submit-btn"
+              class="w-full min-h-[48px] mt-2 px-5 py-3 rounded-xl bg-alpine-900 hover:bg-alpine-800 active:scale-[0.99] text-white font-semibold text-base transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-600 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span id="login-btn-text">Logg inn</span>
+              <svg id="login-btn-arrow" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <p class="text-center text-xs text-sky-200/75 mt-6">
+          Hvittingsfoss Alpinklubb · Internkontroll &amp; anleggsdrift
+        </p>
+      </div>
+    </main>
+
+    <!-- HOVEDPORTAL (vises kun når bruker er logget inn) -->
+    <div id="portal-view" class="hidden min-h-screen flex flex-col">
+      <!-- Toppmeny (3-soners kontrakt) -->
+      <header class="sticky top-0 z-30 bg-alpine-900 text-white border-b border-white/10 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4 sm:gap-8">
+          <!-- Sone 1: Klubbnavn -->
+          <a
+            href="#"
+            class="flex items-center gap-3 font-display font-bold text-base sm:text-lg tracking-tight text-white whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 rounded-lg"
+          >
+            <span class="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-sky-300 shrink-0">
+              <svg class="w-5 h-5" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path
+                  d="M3.5 25.5L13.5 7.5L19.5 18.5L23 12.5L28.5 25.5H3.5Z"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+            <span>Hvittingsfoss Alpinklubb</span>
+          </a>
+
+          <!-- Sone 2: Innlogget e-post -->
+          <div class="hidden md:flex items-center justify-end flex-1 min-w-0">
+            <span class="text-sm text-sky-100/90 truncate max-w-xs" id="header-user-email-desktop"></span>
+          </div>
+
+          <!-- Sone 3: Logg ut -->
+          <div class="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              id="logout-btn"
+              class="min-h-[44px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-sm font-semibold text-white whitespace-nowrap shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Logg ut</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Hovedinnhold -->
+      <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <!-- Mobilvisning av innlogget bruker + sidetittel -->
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <p class="text-xs sm:text-sm font-medium text-sky-700 md:hidden mb-1">
+              Innlogget som: <span id="header-user-email-mobile" class="font-semibold text-alpine-900 break-all"></span>
+            </p>
+            <h1 class="font-display text-2xl sm:text-3xl font-bold text-alpine-900 tracking-tight text-balance">
+              HMS &amp; Driftsportal
+            </h1>
+            <p class="text-sm sm:text-base text-slate-600 mt-1">
+              Internkontroll, beredskap, rutiner og sikkerhetsarbeid for anlegget.
+            </p>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 whitespace-nowrap shrink-0">
+            Hvittingsfoss Alpinklubb · Sesongdrift
+          </p>
+        </div>
+
+        <!-- 2. HURTIGVARSEL / BEREDSKAPSLINJE -->
+        <section
+          aria-labelledby="emergency-heading"
+          class="rounded-2xl border border-red-300 bg-white shadow-sm overflow-hidden"
+        >
+          <!-- Klikkbar topplinje for åpne/lukke -->
+          <button
+            type="button"
+            id="emergency-toggle-btn"
+            aria-expanded="true"
+            aria-controls="emergency-panel"
+            class="w-full min-h-[56px] px-4 sm:px-6 py-3.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white flex items-center justify-between gap-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </span>
+              <div class="min-w-0">
+                <h2 id="emergency-heading" class="font-display text-base sm:text-lg font-bold leading-tight">
+                  Beredskap &amp; Nødvarsling
+                </h2>
+                <p class="text-xs sm:text-sm text-red-50 truncate tabular-nums">
+                  Brann 110 · Politi 112 · Ambulanse 113 · Vakttelefon:
+                  <span id="banner-guard-phone-preview" class="font-semibold">Ikke registrert</span>
+                </p>
+              </div>
+            </div>
+
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 text-xs sm:text-sm font-semibold whitespace-nowrap shrink-0">
+              <span id="emergency-toggle-label">Lukk</span>
+              <svg
+                id="emergency-chevron"
+                class="w-4 h-4 transition-transform duration-200 rotate-180"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                aria-hidden="true"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </span>
+          </button>
+
+          <!-- Utvidbart innhold -->
+          <div id="emergency-panel" class="p-4 sm:p-6 bg-red-50/40 border-t border-red-200">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <!-- Nødnummer 110 / 112 / 113 -->
+              <div class="bg-white rounded-xl border border-red-200/80 p-4 flex flex-col justify-between">
+                <div>
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-red-700 mb-3">
+                    Nødnummer (trykk for å ringe)
+                  </h3>
+                  <div class="grid grid-cols-3 gap-2.5">
+                    <a
+                      href="tel:110"
+                      class="min-h-[56px] rounded-xl bg-red-600 hover:bg-red-700 text-white p-2.5 flex flex-col items-center justify-center text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                    >
+                      <span class="font-mono text-lg sm:text-xl font-bold tabular-nums leading-none">110</span>
+                      <span class="text-xs font-medium text-red-100 mt-1">Brann</span>
+                    </a>
+                    <a
+                      href="tel:112"
+                      class="min-h-[56px] rounded-xl bg-red-600 hover:bg-red-700 text-white p-2.5 flex flex-col items-center justify-center text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                    >
+                      <span class="font-mono text-lg sm:text-xl font-bold tabular-nums leading-none">112</span>
+                      <span class="text-xs font-medium text-red-100 mt-1">Politi</span>
+                    </a>
+                    <a
+                      href="tel:113"
+                      class="min-h-[56px] rounded-xl bg-red-600 hover:bg-red-700 text-white p-2.5 flex flex-col items-center justify-center text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                    >
+                      <span class="font-mono text-lg sm:text-xl font-bold tabular-nums leading-none">113</span>
+                      <span class="text-xs font-medium text-red-100 mt-1">Ambulanse</span>
+                    </a>
+                  </div>
+                </div>
+                <p class="text-xs text-slate-600 mt-3">
+                  Oppgi alltid anleggets adresse og koordinater ved kontakt med 113 / luftambulanse.
+                </p>
+              </div>
+
+              <!-- Adresse & Koordinater for luftambulanse -->
+              <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between gap-2 mb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-alpine-900">
+                      Adresse &amp; Luftambulanse-koordinater
+                    </h3>
+                    <button
+                      type="button"
+                      id="copy-coords-btn"
+                      class="min-h-[36px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-alpine-900 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+                    >
+                      Kopier
+                    </button>
+                  </div>
+                  <p id="facility-address-display" class="text-sm font-semibold text-alpine-900">
+                    Hvittingfoss Alpinklubb, Skibakken, 3647 Hvittingfoss
+                  </p>
+                  <p id="facility-coords-display" class="font-mono text-sm sm:text-base font-semibold text-orange-700 tabular-nums mt-1.5">
+                    59.4864° N, 10.0089° Ø
+                  </p>
+                </div>
+                <p class="text-xs text-slate-500 mt-3">
+                  Kan oppdateres via «Rediger lenker &amp; vakttelefon» nederst på siden.
+                </p>
+              </div>
+
+              <!-- Vaktansvarlig / Driftsleder -->
+              <div class="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between gap-2 mb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-alpine-900">
+                      Vaktansvarlig / Driftsleder
+                    </h3>
+                    <button
+                      type="button"
+                      id="quick-edit-phone-btn"
+                      class="min-h-[36px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-alpine-900 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+                    >
+                      Rediger nummer
+                    </button>
+                  </div>
+
+                  <!-- Visning -->
+                  <div id="guard-phone-display-wrap" class="space-y-2">
+                    <p id="guard-name-display" class="text-sm text-slate-700 font-medium">
+                      Driftsleder på vakt
+                    </p>
+                    <a
+                      id="guard-phone-link"
+                      href="#"
+                      class="min-h-[48px] w-full px-4 py-2.5 rounded-xl bg-alpine-900 hover:bg-alpine-800 text-white font-mono text-base font-semibold tabular-nums flex items-center justify-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+                    >
+                      <svg class="w-4 h-4 text-sky-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                      </svg>
+                      <span id="guard-phone-text">Legg inn vakttelefon</span>
+                    </a>
+                  </div>
+
+                  <!-- Hurtigredigering inline -->
+                  <form id="quick-phone-form" class="hidden space-y-2.5 mt-1">
+                    <div>
+                      <label for="quick-guard-name" class="sr-only">Navn på vaktansvarlig</label>
+                      <input
+                        id="quick-guard-name"
+                        type="text"
+                        placeholder="Navn (f.eks. Ola Nordmann)"
+                        class="w-full min-h-[40px] px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+                      />
+                    </div>
+                    <div>
+                      <label for="quick-guard-phone" class="sr-only">Telefonnummer</label>
+                      <input
+                        id="quick-guard-phone"
+                        type="tel"
+                        placeholder="+47 900 00 000"
+                        class="w-full min-h-[40px] px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+                      />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="submit"
+                        class="flex-1 min-h-[40px] px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors"
+                      >
+                        Lagre
+                      </button>
+                      <button
+                        type="button"
+                        id="quick-phone-cancel"
+                        class="min-h-[40px] px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                      >
+                        Avbryt
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                <p class="text-xs text-slate-500 mt-3">
+                  Lagres i Firestore og oppdateres umiddelbart for alle brukere.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. MODULKORT (Rutenett med 7 store, klikkbare kort) -->
+        <section aria-labelledby="modules-heading">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="modules-heading" class="font-display text-lg sm:text-xl font-bold text-alpine-900">
+              Drifts- og HMS-moduler
+            </h2>
+            <span class="text-xs sm:text-sm text-slate-500 tabular-nums">7 moduler</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <!-- Kort 1: Risikoanalyse & SJA -->
+            <a
+              href="risiko.html"
+              class="group bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-sky-400 transition-all duration-150 flex flex-col justify-between min-h-[192px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-xl bg-alpine-900 text-sky-300 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                      <path d="m9 12 2 2 4-4" />
+                    </svg>
+                  </div>
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold whitespace-nowrap shrink-0">
+                    Aktiv
+                  </span>
+                </div>
+                <h3 class="font-display text-lg font-bold text-alpine-900 group-hover:text-sky-700 transition-colors">
+                  Risikoanalyse &amp; SJA
+                </h3>
+                <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Årlig risikovurdering av skitrekk og anlegg, samt oppfølging av tiltak.
+                </p>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-sm font-semibold text-sky-700">
+                <span>Åpne modul</span>
+                <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </div>
+            </a>
+
+            <!-- Kort 2: Daglig kontroll & Vedlikehold -->
+            <a
+              href="#"
+              data-module-type="coming-soon"
+              data-module-title="Daglig kontroll &amp; Vedlikehold"
+              class="group bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-150 flex flex-col justify-between min-h-[192px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      <path d="m9 14 2 2 4-4" />
+                    </svg>
+                  </div>
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold whitespace-nowrap shrink-0">
+                    Kommer snart
+                  </span>
+                </div>
+                <h3 class="font-display text-lg font-bold text-alpine-900">
+                  Daglig kontroll &amp; Vedlikehold
+                </h3>
+                <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Sjekkliste før åpning av heis, ukentlig vedlikehold og loggføring.
+                </p>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-sm font-medium text-slate-500">
+                <span>Under oppsett</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+            </a>
+
+            <!-- Kort 3: Avvik & Hendelser -->
+            <a
+              href="#"
+              data-module-type="coming-soon"
+              data-module-title="Avvik &amp; Hendelser"
+              class="group bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-150 flex flex-col justify-between min-h-[192px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                  </div>
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold whitespace-nowrap shrink-0">
+                    Kommer snart
+                  </span>
+                </div>
+                <h3 class="font-display text-lg font-bold text-alpine-900">
+                  Avvik &amp; Hendelser
+                </h3>
+                <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Meld inn tekniske feil, uønskede hendelser eller farlige forhold i bakken.
+                </p>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-sm font-medium text-slate-500">
+                <span>Under oppsett</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+            </a>
+
+            <!-- Kort 4: Beredskap & Nødprosedyrer -->
+            <a
+              href="#"
+              data-module-type="dropbox"
+              data-dropbox-key="dropboxBeredskapUrl"
+              data-module-title="Beredskap &amp; Nødprosedyrer"
+              class="group bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-sky-400 transition-all duration-150 flex flex-col justify-between min-h-[192px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <path d="M12 18v-6" />
+                      <path d="M9 15h6" />
+                    </svg>
+                  </div>
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold whitespace-nowrap shrink-0">
+                    Dropbox-arkiv
+                  </span>
+                </div>
+                <h3 class="font-display text-lg font-bold text-alpine-900 group-hover:text-sky-700 transition-colors">
+                  Beredskap &amp; Nødprosedyrer
+                </h3>
+                <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Varslingsplaner, evakuering av heis og rutiner ved ulykker.
+                </p>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-sm font-semibold text-sky-700">
+                <span data-dropbox-status="dropboxBeredskapUrl">Åpne arkiv / lenke</span>
+                <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </div>
+            </a>
+
+            <!-- Kort 5: Instrukser & Rutiner -->
+            <a
+              href="#"
+              data-module-type="dropbox"
+              data-dropbox-key="dropboxInstrukserUrl"
+              data-module-title="Instrukser &amp; Rutiner"
+              class="group bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-sky-400 transition-all duration-150 flex flex-col justify-between min-h-[192px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                      <path d="M8 7h8" />
+                      <path d="M8 11h6" />
+                    </svg>
+                  </div>
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold whitespace-nowrap shrink-0">
+                    Dropbox-arkiv
+                  </span>
+                </div>
+                <h3 class="font-display text-lg font-bold text-alpine-900 group-hover:text-sky-700 transition-colors">
+                  Instrukser &amp; Rutiner
+                </h3>
+                <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Arbeidsinstrukser for heisfører, tråkkemaskin, skipatrulje og kiosk.
+                </p>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-sm font-semibold text-sky-700">
+                <span data-dropbox-status="dropboxInstrukserUrl">Åpne arkiv / lenke</span>
+                <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </div>
+            </a>
+
+            <!-- Kort 6: Opplæring & Kompetanse -->
+            <a
+              href="#"
+              data-module-type="coming-soon"
+              data-module-title="Opplæring &amp; Kompetanse"
+              class="group bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-150 flex flex-col justify-between min-h-[192px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                      <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                    </svg>
+                  </div>
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold whitespace-nowrap shrink-0">
+                    Kommer snart
+                  </span>
+                </div>
+                <h3 class="font-display text-lg font-bold text-alpine-900">
+                  Opplæring &amp; Kompetanse
+                </h3>
+                <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Oversikt over godkjente heisførere, maskinførere og gjennomførte kurs.
+                </p>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-sm font-medium text-slate-500">
+                <span>Under oppsett</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+            </a>
+
+            <!-- Kort 7: Vaktlister & Drift -->
+            <a
+              href="#"
+              data-module-type="coming-soon"
+              data-module-title="Vaktlister &amp; Drift"
+              class="group bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-150 flex flex-col justify-between min-h-[192px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+            >
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                  <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                      <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+                    </svg>
+                  </div>
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold whitespace-nowrap shrink-0">
+                    Kommer snart
+                  </span>
+                </div>
+                <h3 class="font-display text-lg font-bold text-alpine-900">
+                  Vaktlister &amp; Drift
+                </h3>
+                <p class="text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  Vaktplan for heisvakter, skipatrulje og kioskpersonell.
+                </p>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-sm font-medium text-slate-500">
+                <span>Under oppsett</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <!-- Bunntekst & Admin-innstillinger -->
+      <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p class="text-xs sm:text-sm text-slate-500 text-center sm:text-left">
+            Hvittingsfoss Alpinklubb · HMS &amp; Driftsportal
+          </p>
+
+          <!-- 4. ADMIN-INNSTILLINGER -->
+          <button
+            type="button"
+            id="open-admin-settings-btn"
+            class="min-h-[44px] px-4 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-sm font-semibold text-alpine-900 flex items-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"
+          >
+            <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Rediger lenker &amp; vakttelefon</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+
+    <!-- MODAL: "Kommer snart" -->
+    <div
+      id="coming-soon-modal"
+      class="hidden fixed inset-0 z-50 bg-alpine-950/60 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="coming-soon-title"
+    >
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md p-6">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div class="w-11 h-11 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+          </div>
+          <button
+            type="button"
+            data-close-modal="coming-soon-modal"
+            aria-label="Lukk vindu"
+            class="min-w-[44px] min-h-[44px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-alpine-900 hover:bg-slate-100 transition-colors"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <h3 id="coming-soon-title" class="font-display text-lg font-bold text-alpine-900">
+          Modulen er under oppsett
+        </h3>
+        <p id="coming-soon-body" class="text-sm text-slate-600 mt-2 leading-relaxed">
+          Denne modulen klargjøres nå og vil bli tilgjengelig i portalen så snart den er ferdigstilt.
+        </p>
+        <div class="mt-6 flex justify-end">
+          <button
+            type="button"
+            data-close-modal="coming-soon-modal"
+            class="min-h-[44px] px-5 py-2 rounded-xl bg-alpine-900 hover:bg-alpine-800 text-white text-sm font-semibold transition-colors"
+          >
+            Forstått
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Dropbox-arkiv (Beredskap / Instrukser) -->
+    <div
+      id="dropbox-modal"
+      class="hidden fixed inset-0 z-50 bg-alpine-950/60 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dropbox-modal-title"
+    >
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg p-6">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <span class="text-xs font-semibold text-sky-700">Dropbox-arkiv</span>
+            <h3 id="dropbox-modal-title" class="font-display text-xl font-bold text-alpine-900 mt-0.5">
+              Dokumenter
+            </h3>
+          </div>
+          <button
+            type="button"
+            data-close-modal="dropbox-modal"
+            aria-label="Lukk vindu"
+            class="min-w-[44px] min-h-[44px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-alpine-900 hover:bg-slate-100 transition-colors"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Lenke til Dropbox dersom registrert -->
+        <div id="dropbox-active-link-box" class="mb-5 rounded-xl bg-sky-50 border border-sky-200 p-4">
+          <p class="text-sm text-alpine-900 font-medium mb-3">
+            Mappen åpnes i en ny fane via Dropbox:
+          </p>
+          <a
+            id="dropbox-external-link"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="min-h-[48px] w-full px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <span>Åpne Dropbox-mappe</span>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </a>
+        </div>
+
+        <div id="dropbox-missing-link-box" class="hidden mb-5 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
+          Det er ikke lagt inn en Dropbox-lenke for denne modulen ennå. Lim inn lenken nedenfor for å aktivere tilgang.
+        </div>
+
+        <!-- Skjema for å oppdatere Dropbox-lenke direkte -->
+        <form id="dropbox-modal-form" class="space-y-3 border-t border-slate-200 pt-4">
+          <label for="dropbox-url-input" class="block text-sm font-semibold text-alpine-900">
+            Oppdater lenke til Dropbox-mappe
+          </label>
+          <input
+            id="dropbox-url-input"
+            type="url"
+            placeholder="https://www.dropbox.com/sh/..."
+            class="w-full min-h-[46px] px-3.5 py-2 rounded-xl border border-slate-300 text-sm text-alpine-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600"
+          />
+          <p id="dropbox-modal-feedback" class="hidden text-xs font-medium"></p>
+          <div class="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              data-close-modal="dropbox-modal"
+              class="min-h-[44px] px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition-colors"
+            >
+              Lukk
+            </button>
+            <button
+              type="submit"
+              id="dropbox-save-btn"
+              class="min-h-[44px] px-5 py-2 rounded-xl bg-alpine-900 hover:bg-alpine-800 text-white text-sm font-semibold transition-colors"
+            >
+              Lagre lenke
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: Admin-innstillinger (Rediger lenker & vakttelefon) -->
+    <div
+      id="admin-settings-modal"
+      class="hidden fixed inset-0 z-50 bg-alpine-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="admin-settings-title"
+    >
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-xl p-6 my-8">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h3 id="admin-settings-title" class="font-display text-xl font-bold text-alpine-900">
+              Portalinnstillinger
+            </h3>
+            <p class="text-sm text-slate-600 mt-0.5">
+              Oppdater vakttelefon, beredskapsinfo og Dropbox-lenker i Firestore.
+            </p>
+          </div>
+          <button
+            type="button"
+            data-close-modal="admin-settings-modal"
+            aria-label="Lukk vindu"
+            class="min-w-[44px] min-h-[44px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-slate-400 hover:text-alpine-900 hover:bg-slate-100 transition-colors"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <form id="admin-settings-form" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="setting-guard-name" class="block text-sm font-semibold text-alpine-900 mb-1">
+                Vaktansvarlig / Driftsleder
+              </label>
+              <input
+                id="setting-guard-name"
+                type="text"
+                placeholder="Navn på driftsleder"
+                class="w-full min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+              />
+            </div>
+            <div>
+              <label for="setting-guard-phone" class="block text-sm font-semibold text-alpine-900 mb-1">
+                Vakttelefon (nummer)
+              </label>
+              <input
+                id="setting-guard-phone"
+                type="tel"
+                placeholder="+47 900 00 000"
+                class="w-full min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="setting-address" class="block text-sm font-semibold text-alpine-900 mb-1">
+                Anleggets adresse
+              </label>
+              <input
+                id="setting-address"
+                type="text"
+                placeholder="Hvittingsfoss Alpinklubb..."
+                class="w-full min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+              />
+            </div>
+            <div>
+              <label for="setting-coords" class="block text-sm font-semibold text-alpine-900 mb-1">
+                Koordinater (luftambulanse)
+              </label>
+              <input
+                id="setting-coords"
+                type="text"
+                placeholder="59.4864° N, 10.0089° Ø"
+                class="w-full min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="setting-dropbox-beredskap" class="block text-sm font-semibold text-alpine-900 mb-1">
+              Dropbox-lenke: Beredskap &amp; Nødprosedyrer
+            </label>
+            <input
+              id="setting-dropbox-beredskap"
+              type="url"
+              placeholder="https://www.dropbox.com/sh/..."
+              class="w-full min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+            />
+          </div>
+
+          <div>
+            <label for="setting-dropbox-instrukser" class="block text-sm font-semibold text-alpine-900 mb-1">
+              Dropbox-lenke: Instrukser &amp; Rutiner
+            </label>
+            <input
+              id="setting-dropbox-instrukser"
+              type="url"
+              placeholder="https://www.dropbox.com/sh/..."
+              class="w-full min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 text-sm text-alpine-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
+            />
+          </div>
+
+          <p id="admin-settings-feedback" class="hidden text-xs font-medium"></p>
+
+          <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              data-close-modal="admin-settings-modal"
+              class="min-h-[44px] px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition-colors"
+            >
+              Avbryt
+            </button>
+            <button
+              type="submit"
+              id="admin-save-btn"
+              class="min-h-[44px] px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold transition-colors"
+            >
+              Lagre innstillinger
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Diskret toast-melding for bekreftelser -->
+    <div
+      id="toast-banner"
+      class="hidden fixed bottom-5 right-5 z-50 max-w-sm rounded-xl bg-alpine-900 text-white px-4 py-3 text-sm font-medium shadow-xl border border-white/15"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <!-- Firebase SDK v10+ via CDN og applikasjonslogikk -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signInWithEmailAndPassword,
+        signOut,
+      } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+      import {
+        getFirestore,
+        doc,
+        onSnapshot,
+        setDoc,
+        serverTimestamp,
+      } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+      // Firebase-konfigurasjon for Hvittingsfoss Alpinklubb
+      const firebaseConfig = {
+        apiKey: 'AIzaSyCyw0O4XYBpBOs6fe-WWTySu0AXpnZve8s',
+        authDomain: 'hvittingfoss-alpinklubb-ec611.firebaseapp.com',
+        projectId: 'hvittingfoss-alpinklubb-ec611',
+        storageBucket: 'hvittingfoss-alpinklubb-ec611.firebasestorage.app',
+        messagingSenderId: '428686855423',
+        appId: '1:428686855423:web:f2b07c74f690ea75a7d0ca',
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Firestore-referanse under samlingen "portal_innstillinger"
+      const SETTINGS_COLLECTION = 'portal_innstillinger';
+      const SETTINGS_DOC_ID = 'hovedoppsett';
+      const settingsDocRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+
+      // Standardverdier før Firestore-data er fylt ut
+      let portalSettings = {
+        guardName: 'Driftsleder på vakt',
+        guardPhone: '',
+        facilityAddress: 'Hvittingfoss Alpinklubb, Skibakken, 3647 Hvittingfoss',
+        facilityCoords: '59.4864° N, 10.0089° Ø',
+        dropboxBeredskapUrl: '',
+        dropboxInstrukserUrl: '',
+      };
+
+      let unsubscribeSettings = null;
+      let activeDropboxKey = null;
+      let toastTimer = null;
+
+      // DOM-elementer
+      const loadingScreen = document.getElementById('loading-screen');
+      const loginView = document.getElementById('login-view');
+      const portalView = document.getElementById('portal-view');
+
+      const loginForm = document.getElementById('login-form');
+      const loginEmailInput = document.getElementById('login-email');
+      const loginPasswordInput = document.getElementById('login-password');
+      const loginErrorBox = document.getElementById('login-error');
+      const loginErrorText = document.getElementById('login-error-text');
+      const loginSubmitBtn = document.getElementById('login-submit-btn');
+      const loginBtnText = document.getElementById('login-btn-text');
+      const togglePasswordBtn = document.getElementById('toggle-password-btn');
+      const eyeIconOpen = document.getElementById('eye-icon-open');
+      const eyeIconClosed = document.getElementById('eye-icon-closed');
+
+      const headerEmailDesktop = document.getElementById('header-user-email-desktop');
+      const headerEmailMobile = document.getElementById('header-user-email-mobile');
+      const logoutBtn = document.getElementById('logout-btn');
+
+      // Beredskapsboks
+      const emergencyToggleBtn = document.getElementById('emergency-toggle-btn');
+      const emergencyPanel = document.getElementById('emergency-panel');
+      const emergencyToggleLabel = document.getElementById('emergency-toggle-label');
+      const emergencyChevron = document.getElementById('emergency-chevron');
+      const bannerGuardPhonePreview = document.getElementById('banner-guard-phone-preview');
+      const facilityAddressDisplay = document.getElementById('facility-address-display');
+      const facilityCoordsDisplay = document.getElementById('facility-coords-display');
+      const copyCoordsBtn = document.getElementById('copy-coords-btn');
+
+      const guardNameDisplay = document.getElementById('guard-name-display');
+      const guardPhoneLink = document.getElementById('guard-phone-link');
+      const guardPhoneText = document.getElementById('guard-phone-text');
+      const guardPhoneDisplayWrap = document.getElementById('guard-phone-display-wrap');
+      const quickEditPhoneBtn = document.getElementById('quick-edit-phone-btn');
+      const quickPhoneForm = document.getElementById('quick-phone-form');
+      const quickGuardNameInput = document.getElementById('quick-guard-name');
+      const quickGuardPhoneInput = document.getElementById('quick-guard-phone');
+      const quickPhoneCancelBtn = document.getElementById('quick-phone-cancel');
+
+      // Modaler
+      const comingSoonModal = document.getElementById('coming-soon-modal');
+      const comingSoonTitle = document.getElementById('coming-soon-title');
+      const comingSoonBody = document.getElementById('coming-soon-body');
+
+      const dropboxModal = document.getElementById('dropbox-modal');
+      const dropboxModalTitle = document.getElementById('dropbox-modal-title');
+      const dropboxActiveLinkBox = document.getElementById('dropbox-active-link-box');
+      const dropboxMissingLinkBox = document.getElementById('dropbox-missing-link-box');
+      const dropboxExternalLink = document.getElementById('dropbox-external-link');
+      const dropboxModalForm = document.getElementById('dropbox-modal-form');
+      const dropboxUrlInput = document.getElementById('dropbox-url-input');
+      const dropboxModalFeedback = document.getElementById('dropbox-modal-feedback');
+      const dropboxSaveBtn = document.getElementById('dropbox-save-btn');
+
+      const openAdminSettingsBtn = document.getElementById('open-admin-settings-btn');
+      const adminSettingsModal = document.getElementById('admin-settings-modal');
+      const adminSettingsForm = document.getElementById('admin-settings-form');
+      const settingGuardName = document.getElementById('setting-guard-name');
+      const settingGuardPhone = document.getElementById('setting-guard-phone');
+      const settingAddress = document.getElementById('setting-address');
+      const settingCoords = document.getElementById('setting-coords');
+      const settingDropboxBeredskap = document.getElementById('setting-dropbox-beredskap');
+      const settingDropboxInstrukser = document.getElementById('setting-dropbox-instrukser');
+      const adminSettingsFeedback = document.getElementById('admin-settings-feedback');
+      const adminSaveBtn = document.getElementById('admin-save-btn');
+
+      const toastBanner = document.getElementById('toast-banner');
+
+      function showToast(message) {
+        toastBanner.textContent = message;
+        toastBanner.classList.remove('hidden');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastBanner.classList.add('hidden');
+        }, 3400);
+      }
+
+      function normalizeUrl(rawUrl) {
+        const trimmed = (rawUrl || '').trim();
+        if (!trimmed) return '';
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return `https://${trimmed}`;
+      }
+
+      function sanitizePhoneForTel(phone) {
+        return (phone || '').replace(/[^\d+]/g, '');
+      }
+
+      function mapAuthErrorToNorwegian(code) {
+        switch (code) {
+          case 'auth/invalid-credential':
+          case 'auth/wrong-password':
+          case 'auth/user-not-found':
+            return 'Feil e-postadresse eller passord. Kontroller opplysningene og prøv igjen.';
+          case 'auth/invalid-email':
+            return 'Ugyldig e-postadresse. Vennligst sjekk formatet.';
+          case 'auth/user-disabled':
+            return 'Denne brukerkontoen er deaktivert. Kontakt styret eller driftsleder.';
+          case 'auth/too-many-requests':
+            return 'For mange mislykkede innloggingsforsøk. Vent litt før du prøver igjen.';
+          case 'auth/network-request-failed':
+            return 'Nettverksfeil. Sjekk mobildekning eller internettforbindelse.';
+          default:
+            return 'Innloggingen feilet. Kontroller e-post og passord og prøv igjen.';
+        }
+      }
+
+      function renderSettings() {
+        const phone = (portalSettings.guardPhone || '').trim();
+        const name = (portalSettings.guardName || '').trim() || 'Driftsleder på vakt';
+        const address =
+          (portalSettings.facilityAddress || '').trim() ||
+          'Hvittingfoss Alpinklubb, Skibakken, 3647 Hvittingfoss';
+        const coords = (portalSettings.facilityCoords || '').trim() || '59.4864° N, 10.0089° Ø';
+
+        guardNameDisplay.textContent = name;
+        facilityAddressDisplay.textContent = address;
+        facilityCoordsDisplay.textContent = coords;
+
+        if (phone) {
+          bannerGuardPhonePreview.textContent = phone;
+          guardPhoneText.textContent = phone;
+          guardPhoneLink.href = `tel:${sanitizePhoneForTel(phone)}`;
+          guardPhoneLink.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+          guardPhoneLink.classList.add('bg-alpine-900', 'text-white', 'hover:bg-alpine-800');
+        } else {
+          bannerGuardPhonePreview.textContent = 'Ikke registrert';
+          guardPhoneText.textContent = 'Legg inn vakttelefon';
+          guardPhoneLink.href = '#';
+          guardPhoneLink.classList.remove('bg-alpine-900', 'text-white', 'hover:bg-alpine-800');
+          guardPhoneLink.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+        }
+
+        // Oppdater status-tekst på Dropbox-kortene
+        document.querySelectorAll('[data-dropbox-status]').forEach((el) => {
+          const key = el.getAttribute('data-dropbox-status');
+          const url = getEffectiveDropboxUrl(key);
+          el.textContent = url ? 'Åpne Dropbox-mappe' : 'Legg inn Dropbox-lenke';
+        });
+      }
+
+      function getEffectiveDropboxUrl(key) {
+        if (key === 'dropboxInstrukserUrl') {
+          return (
+            portalSettings.dropboxInstrukserUrl ||
+            portalSettings.dropboxBeredskapUrl ||
+            ''
+          ).trim();
+        }
+        return (portalSettings[key] || '').trim();
+      }
+
+      function subscribeToPortalSettings() {
+        if (unsubscribeSettings) unsubscribeSettings();
+        unsubscribeSettings = onSnapshot(
+          settingsDocRef,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              portalSettings = {
+                ...portalSettings,
+                ...snapshot.data(),
+              };
+            }
+            renderSettings();
+          },
+          (error) => {
+            console.error('Feil ved lesing av portal_innstillinger:', error);
+            renderSettings();
+          }
+        );
+      }
+
+      async function saveSettingsToFirestore(partialData) {
+        const userEmail = auth.currentUser ? auth.currentUser.email : 'ukjent';
+        await setDoc(
+          settingsDocRef,
+          {
+            ...partialData,
+            updatedAt: serverTimestamp(),
+            updatedBy: userEmail,
+          },
+          { merge: true }
+        );
+      }
+
+      // Firebase Auth-lytter: Styrer tilgang mellom innlogging og portal
+      onAuthStateChanged(auth, (user) => {
+        loadingScreen.classList.add('hidden');
+        if (user) {
+          loginView.classList.add('hidden');
+          portalView.classList.remove('hidden');
+          const email = user.email || 'Innlogget bruker';
+          headerEmailDesktop.textContent = email;
+          headerEmailMobile.textContent = email;
+          subscribeToPortalSettings();
+        } else {
+          if (unsubscribeSettings) {
+            unsubscribeSettings();
+            unsubscribeSettings = null;
+          }
+          portalView.classList.add('hidden');
+          loginView.classList.remove('hidden');
+          loginPasswordInput.value = '';
+        }
+      });
+
+      // Vis/skjul passord
+      togglePasswordBtn.addEventListener('click', () => {
+        const isPassword = loginPasswordInput.type === 'password';
+        loginPasswordInput.type = isPassword ? 'text' : 'password';
+        eyeIconOpen.classList.toggle('hidden', isPassword);
+        eyeIconClosed.classList.toggle('hidden', !isPassword);
+      });
+
+      // Innloggingsskjema
+      loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        loginErrorBox.classList.add('hidden');
+
+        const email = loginEmailInput.value.trim();
+        const password = loginPasswordInput.value;
+
+        if (!email || !password) {
+          loginErrorText.textContent = 'Fyll inn både e-postadresse og passord.';
+          loginErrorBox.classList.remove('hidden');
+          return;
+        }
+
+        loginSubmitBtn.disabled = true;
+        loginBtnText.textContent = 'Logger inn...';
+
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+        } catch (err) {
+          loginErrorText.textContent = mapAuthErrorToNorwegian(err.code);
+          loginErrorBox.classList.remove('hidden');
+        } finally {
+          loginSubmitBtn.disabled = false;
+          loginBtnText.textContent = 'Logg inn';
+        }
+      });
+
+      // Utlogging
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          await signOut(auth);
+        } catch (err) {
+          console.error('Feil ved utlogging:', err);
+          showToast('Kunne ikke logge ut. Prøv igjen.');
+        }
+      });
+
+      // Beredskapsboks åpne/lukke med ett klikk
+      emergencyToggleBtn.addEventListener('click', () => {
+        const isExpanded = emergencyToggleBtn.getAttribute('aria-expanded') === 'true';
+        const nextExpanded = !isExpanded;
+        emergencyToggleBtn.setAttribute('aria-expanded', String(nextExpanded));
+        emergencyPanel.classList.toggle('hidden', !nextExpanded);
+        emergencyToggleLabel.textContent = nextExpanded ? 'Lukk' : 'Åpne';
+        emergencyChevron.classList.toggle('rotate-180', nextExpanded);
+      });
+
+      // Kopier koordinater og adresse til utklippstavle
+      copyCoordsBtn.addEventListener('click', async () => {
+        const text = `${facilityAddressDisplay.textContent.trim()} (${facilityCoordsDisplay.textContent.trim()})`;
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('Adresse og koordinater kopiert til utklippstavlen.');
+        } catch {
+          showToast('Kunne ikke kopiere automatisk.');
+        }
+      });
+
+      // Klikk på vakttelefon når den ikke er satt
+      guardPhoneLink.addEventListener('click', (event) => {
+        if (!portalSettings.guardPhone) {
+          event.preventDefault();
+          openQuickPhoneEditor();
+        }
+      });
+
+      function openQuickPhoneEditor() {
+        quickGuardNameInput.value = portalSettings.guardName || '';
+        quickGuardPhoneInput.value = portalSettings.guardPhone || '';
+        guardPhoneDisplayWrap.classList.add('hidden');
+        quickPhoneForm.classList.remove('hidden');
+        quickGuardPhoneInput.focus();
+      }
+
+      quickEditPhoneBtn.addEventListener('click', openQuickPhoneEditor);
+
+      quickPhoneCancelBtn.addEventListener('click', () => {
+        quickPhoneForm.classList.add('hidden');
+        guardPhoneDisplayWrap.classList.remove('hidden');
+      });
+
+      quickPhoneForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const nextName = quickGuardNameInput.value.trim() || 'Driftsleder på vakt';
+        const nextPhone = quickGuardPhoneInput.value.trim();
+        try {
+          await saveSettingsToFirestore({
+            guardName: nextName,
+            guardPhone: nextPhone,
+          });
+          quickPhoneForm.classList.add('hidden');
+          guardPhoneDisplayWrap.classList.remove('hidden');
+          showToast('Vakttelefon oppdatert i Firestore.');
+        } catch (err) {
+          console.error('Feil ved lagring av vakttelefon:', err);
+          showToast('Kunne ikke lagre til Firestore. Sjekk tilgangsrettigheter.');
+        }
+      });
+
+      // Modulkort klikk-håndtering
+      document.querySelectorAll('[data-module-type]').forEach((card) => {
+        card.addEventListener('click', (event) => {
+          event.preventDefault();
+          const type = card.getAttribute('data-module-type');
+          const title = card.getAttribute('data-module-title') || 'Modul';
+
+          if (type === 'coming-soon') {
+            comingSoonTitle.textContent = title;
+            comingSoonBody.textContent = `Modulen «${title}» er under oppsett og vil bli aktivert så snart den er klar for drift.`;
+            comingSoonModal.classList.remove('hidden');
+          } else if (type === 'dropbox') {
+            activeDropboxKey = card.getAttribute('data-dropbox-key');
+            openDropboxModal(title, activeDropboxKey);
+          }
+        });
+      });
+
+      function openDropboxModal(title, key) {
+        dropboxModalTitle.textContent = title;
+        dropboxModalFeedback.classList.add('hidden');
+        const directUrl = (portalSettings[key] || '').trim();
+        const effectiveUrl = getEffectiveDropboxUrl(key);
+
+        dropboxUrlInput.value = directUrl;
+
+        if (effectiveUrl) {
+          dropboxExternalLink.href = normalizeUrl(effectiveUrl);
+          dropboxActiveLinkBox.classList.remove('hidden');
+          dropboxMissingLinkBox.classList.add('hidden');
+        } else {
+          dropboxActiveLinkBox.classList.add('hidden');
+          dropboxMissingLinkBox.classList.remove('hidden');
+        }
+
+        dropboxModal.classList.remove('hidden');
+      }
+
+      dropboxModalForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!activeDropboxKey) return;
+
+        const cleanUrl = normalizeUrl(dropboxUrlInput.value);
+        dropboxSaveBtn.disabled = true;
+        dropboxSaveBtn.textContent = 'Lagrer...';
+        dropboxModalFeedback.classList.add('hidden');
+
+        try {
+          await saveSettingsToFirestore({
+            [activeDropboxKey]: cleanUrl,
+          });
+          portalSettings[activeDropboxKey] = cleanUrl;
+          renderSettings();
+          openDropboxModal(dropboxModalTitle.textContent, activeDropboxKey);
+          dropboxModalFeedback.textContent = 'Dropbox-lenken er lagret i Firestore.';
+          dropboxModalFeedback.className = 'text-xs font-semibold text-emerald-700';
+          dropboxModalFeedback.classList.remove('hidden');
+          showToast('Dropbox-lenke oppdatert.');
+        } catch (err) {
+          console.error('Feil ved lagring av Dropbox-lenke:', err);
+          dropboxModalFeedback.textContent =
+            'Kunne ikke lagre lenken til Firestore. Kontroller sikkerhetsregler.';
+          dropboxModalFeedback.className = 'text-xs font-semibold text-red-700';
+          dropboxModalFeedback.classList.remove('hidden');
+        } finally {
+          dropboxSaveBtn.disabled = false;
+          dropboxSaveBtn.textContent = 'Lagre lenke';
+        }
+      });
+
+      // Admin-innstillinger modal
+      openAdminSettingsBtn.addEventListener('click', () => {
+        adminSettingsFeedback.classList.add('hidden');
+        settingGuardName.value = portalSettings.guardName || '';
+        settingGuardPhone.value = portalSettings.guardPhone || '';
+        settingAddress.value = portalSettings.facilityAddress || '';
+        settingCoords.value = portalSettings.facilityCoords || '';
+        settingDropboxBeredskap.value = portalSettings.dropboxBeredskapUrl || '';
+        settingDropboxInstrukser.value = portalSettings.dropboxInstrukserUrl || '';
+        adminSettingsModal.classList.remove('hidden');
+      });
+
+      adminSettingsForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        adminSaveBtn.disabled = true;
+        adminSaveBtn.textContent = 'Lagrer...';
+        adminSettingsFeedback.classList.add('hidden');
+
+        const payload = {
+          guardName: settingGuardName.value.trim() || 'Driftsleder på vakt',
+          guardPhone: settingGuardPhone.value.trim(),
+          facilityAddress:
+            settingAddress.value.trim() ||
+            'Hvittingfoss Alpinklubb, Skibakken, 3647 Hvittingfoss',
+          facilityCoords: settingCoords.value.trim() || '59.4864° N, 10.0089° Ø',
+          dropboxBeredskapUrl: normalizeUrl(settingDropboxBeredskap.value),
+          dropboxInstrukserUrl: normalizeUrl(settingDropboxInstrukser.value),
+        };
+
+        try {
+          await saveSettingsToFirestore(payload);
+          portalSettings = { ...portalSettings, ...payload };
+          renderSettings();
+          adminSettingsModal.classList.add('hidden');
+          showToast('Portalinnstillinger lagret i Firestore.');
+        } catch (err) {
+          console.error('Feil ved lagring av innstillinger:', err);
+          adminSettingsFeedback.textContent =
+            'Lagring feilet. Sjekk nettverk eller Firestore-rettigheter.';
+          adminSettingsFeedback.className = 'text-xs font-semibold text-red-700';
+          adminSettingsFeedback.classList.remove('hidden');
+        } finally {
+          adminSaveBtn.disabled = false;
+          adminSaveBtn.textContent = 'Lagre innstillinger';
+        }
+      });
+
+      // Lukk modaler via knapp, bakgrunn eller Escape
+      document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const modalId = btn.getAttribute('data-close-modal');
+          document.getElementById(modalId)?.classList.add('hidden');
+        });
+      });
+
+      [comingSoonModal, dropboxModal, adminSettingsModal].forEach((modal) => {
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) {
+            modal.classList.add('hidden');
+          }
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          [comingSoonModal, dropboxModal, adminSettingsModal].forEach((modal) => {
+            modal.classList.add('hidden');
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
