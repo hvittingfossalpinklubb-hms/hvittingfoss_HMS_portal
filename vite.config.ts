@@ -25,6 +25,10 @@ export default defineConfig(() => {
           if (fs.existsSync(distDir) && fs.existsSync(srcAssets)) {
             fs.cpSync(srcAssets, distAssets, {recursive: true, force: true});
           }
+          const rootRisiko = path.resolve(__dirname, 'risiko.html');
+          if (fs.existsSync(distDir) && fs.existsSync(rootRisiko)) {
+            fs.copyFileSync(rootRisiko, path.resolve(distDir, 'risiko.html'));
+          }
         },
       },
     ],

@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hvittingsfoss Alpinklubb – Risikovurdering</title>
+    <title>Hvittingsfoss Alpinklubb – Risikoanalyse &amp; SJA</title>
     <meta
       name="description"
-      content="Webapp for årlig og daglig risikovurdering, rammeverk, Excel-import og rapportering for Hvittingsfoss Alpinklubb."
+      content="Modul for risikoanalyse, SJA, årlig og daglig risikovurdering, rammeverk, Excel-import og rapportering for Hvittingsfoss Alpinklubb."
     />
-    <meta property="og:title" content="Hvittingsfoss Alpinklubb – Risikovurdering" />
+    <meta property="og:title" content="Hvittingsfoss Alpinklubb – Risikoanalyse &amp; SJA" />
     <meta
       property="og:description"
-      content="Webapp for årlig og daglig risikovurdering, rammeverk, Excel-import og rapportering for Hvittingsfoss Alpinklubb."
+      content="Modul for risikoanalyse, SJA, årlig og daglig risikovurdering, rammeverk, Excel-import og rapportering for Hvittingsfoss Alpinklubb."
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -154,7 +154,7 @@
       <div class="flex-1 flex items-center justify-center p-6">
         <div class="text-center space-y-3">
           <div class="inline-block h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-blue-700"></div>
-          <p class="text-sm text-slate-500">Laster Hvittingsfoss Alpinklubb Risikovurdering…</p>
+          <p class="text-sm text-slate-500">Laster Risikoanalyse &amp; SJA…</p>
         </div>
       </div>
     </div>
@@ -181,15 +181,14 @@
       aria-live="polite"
     ></div>
 
-    <!-- Main Application Script (Firebase SDK v10+ via CDN) -->
+    <!-- Main Application Script (Firebase SDK v10+ via CDN, ingen innlogging påkrevd) -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
       import {
         getAuth,
         onAuthStateChanged,
+        signInAnonymously,
         signInWithEmailAndPassword,
-        sendPasswordResetEmail,
-        signOut,
       } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
       import {
         getFirestore,
@@ -206,14 +205,15 @@
       // ------------------------------------------------------------------
       // 1. Firebase Configuration & Initialization
       // ------------------------------------------------------------------
-     const firebaseConfig = {
-        apiKey: 'AIzaSyCyw0O4XYBpBOs6fe-WWTySu0AXpnZve8s',
-        authDomain: 'hvittingfoss-alpinklubb-ec611.firebaseapp.com',
-        projectId: 'hvittingfoss-alpinklubb-ec611',
-        storageBucket: 'hvittingfoss-alpinklubb-ec611.firebasestorage.app',
-        messagingSenderId: '428686855423',
-        appId: '1:428686855423:web:f2b07c74f690ea75a7d0ca',
+      const firebaseConfig = {
+        apiKey: "AIzaSyAWeWaeXIUO4sCOSmuCFMxiM_aEufmajBs",
+        authDomain: "risikoanalyse-c5838.firebaseapp.com",
+        projectId: "risikoanalyse-c5838",
+        storageBucket: "risikoanalyse-c5838.firebasestorage.app",
+        messagingSenderId: "185947039818",
+        appId: "1:185947039818:web:cc91020246c94b304f5eb3"
       };
+
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
@@ -241,17 +241,6 @@
         4: '4 · Alvorlig',
         5: '5 · Svært alvorlig',
       };
-
-      const ROLE_SUGGESTIONS = [
-        'Driftsleder',
-        'Heisfører',
-        'Tråkkemaskinfører',
-        'Skipatrulje',
-        'Anleggsansvarlig',
-        'Daglig leder',
-        'Snøproduksjonsansvarlig',
-        'Vaktleder',
-      ];
 
       function clampRating(value, fallback = 1) {
         const num = parseInt(value, 10);
@@ -338,12 +327,6 @@
       // 3. Application State
       // ------------------------------------------------------------------
       const state = {
-        authLoading: true,
-        user: null,
-        authError: '',
-        authInfo: '',
-        authSubmitting: false,
-
         activeTab: 'dashboard', // 'dashboard' | 'wizard' | 'framework' | 'reporting'
         selectedYear: CURRENT_YEAR,
         wizardYear: CURRENT_YEAR,
@@ -351,8 +334,12 @@
 
         rammeverk: [],
         vurderinger: [],
-        dataLoading: false,
+        dataLoading: true,
         dataError: '',
+        permissionDenied: false,
+        showOptionalAuthForm: false,
+        optionalAuthSubmitting: false,
+        optionalAuthError: '',
 
         // Dashboard filters
         searchQuery: '',
@@ -533,6 +520,7 @@
         stopFirestoreListeners();
         state.dataLoading = true;
         state.dataError = '';
+        state.permissionDenied = false;
 
         let rammeverkLoaded = false;
         let vurderingerLoaded = false;
@@ -540,6 +528,8 @@
         const finishCheck = () => {
           if (rammeverkLoaded && vurderingerLoaded) {
             state.dataLoading = false;
+            state.permissionDenied = false;
+            state.dataError = '';
             syncWizardDraft(true);
             render();
           }
@@ -560,7 +550,10 @@
             if (!state.dataLoading) render();
           },
           (err) => {
-            console.error('Firestore rammeverk error:', err);
+            console.warn('Firestore rammeverk error:', err);
+            if (err?.code === 'permission-denied') {
+              state.permissionDenied = true;
+            }
             state.dataError = translateFirestoreError(err);
             state.dataLoading = false;
             render();
@@ -581,7 +574,10 @@
             if (!state.dataLoading) render();
           },
           (err) => {
-            console.error('Firestore vurderinger error:', err);
+            console.warn('Firestore vurderinger error:', err);
+            if (err?.code === 'permission-denied') {
+              state.permissionDenied = true;
+            }
             state.dataError = translateFirestoreError(err);
             state.dataLoading = false;
             render();
@@ -592,7 +588,7 @@
       function translateFirestoreError(err) {
         const code = err?.code || '';
         if (code === 'permission-denied') {
-          return 'Ingen tilgang til databasen (Firestore-regler). Kontroller at brukeren er logget inn og har lese-/skrivetilgang.';
+          return 'Firestore i prosjektet «risikoanalyse-c5838» blokkerer tilgang uten gyldig autorisasjon (Missing or insufficient permissions).';
         }
         if (code === 'unavailable') {
           return 'Kan ikke kontakte Firestore akkurat nå. Sjekk internettforbindelsen.';
@@ -600,42 +596,11 @@
         return `Databasefeil: ${err?.message || 'Ukjent feil'}`;
       }
 
-      function translateAuthError(err) {
-        const code = String(err?.code || '');
-        if (code.includes('api-key-not-valid')) {
-          return 'Ugyldig Firebase API-nøkkel (apiKey) i firebaseConfig. Kopier gyldig Web API-nøkkel fra Firebase Console → Prosjektinnstillinger for prosjektet «risikoanalyse-c5838».';
-        }
-        if (code.includes('requests-from-referer')) {
-          return 'Dette domenet er blokkert av API-nøkkelens HTTP-referrer-begrensninger i Google Cloud Console.';
-        }
-        switch (code) {
-          case 'auth/invalid-credential':
-          case 'auth/wrong-password':
-          case 'auth/user-not-found':
-            return 'Feil e-postadresse eller passord.';
-          case 'auth/invalid-email':
-            return 'Ugyldig format på e-postadressen.';
-          case 'auth/operation-not-allowed':
-            return 'Innlogging med e-post og passord er ikke aktivert i Firebase Authentication (Sign-in method).';
-          case 'auth/unauthorized-domain':
-            return 'Dette domenet er ikke godkjent i Firebase Authentication → Settings → Authorized domains.';
-          case 'auth/too-many-requests':
-            return 'For mange mislykkede forsøk. Vent litt før du prøver igjen.';
-          case 'auth/network-request-failed':
-            return 'Nettverksfeil. Sjekk tilkoblingen og prøv på nytt.';
-          case 'auth/user-disabled':
-            return 'Denne brukerkontoen er deaktivert.';
-          default:
-            return `Kunne ikke logge inn (${code || 'ukjent feil'}).`;
-        }
-      }
-
       async function saveAssessmentStatus(docId, newStatus) {
         try {
           await updateDoc(doc(db, 'vurderinger', docId), {
             status: newStatus,
             updatedAt: new Date().toISOString(),
-            updatedBy: state.user?.email || '',
           });
           showToast(`Status oppdatert til «${newStatus || 'Ikke satt'}»`);
         } catch (err) {
@@ -673,7 +638,6 @@
           status: payload.status ?? 'Ikke startet',
           merknad: String(payload.merknad ?? '').trim(),
           updatedAt: new Date().toISOString(),
-          updatedBy: state.user?.email || '',
         };
 
         await setDoc(doc(db, 'vurderinger', docId), dataToSave, { merge: true });
@@ -785,7 +749,6 @@
           blankrows: false,
         });
 
-        // Locate header row where the first non-empty cell (or column 0/1) starts with "Nr." or "Nr"
         let headerIdx = -1;
         let nrColOffset = 0;
 
@@ -793,12 +756,10 @@
           const row = matrix[r];
           if (!Array.isArray(row)) continue;
 
-          // Check first 3 columns for a cell starting with "Nr." or exact "Nr"
           for (let c = 0; c < Math.min(row.length, 3); c++) {
             const cell = String(row[c] ?? '').trim();
             const lower = cell.toLowerCase();
             if (lower === 'nr.' || lower === 'nr' || /^nr\.?\s*$/i.test(cell)) {
-              // Confirm row has other descriptive header columns to avoid accidental false positives
               const joined = row.map((x) => String(x ?? '').toLowerCase()).join(' ');
               if (
                 joined.includes('komponent') ||
@@ -816,7 +777,6 @@
           if (headerIdx !== -1) break;
         }
 
-        // Fallback: check any row whose first cell starts with "Nr."
         if (headerIdx === -1) {
           for (let r = 0; r < matrix.length; r++) {
             const row = matrix[r];
@@ -838,7 +798,6 @@
 
         const headerRow = matrix[headerIdx];
 
-        // Map column indices carefully (handling duplicate Sannsynlighet / Konsekvens / Risikotall before and after Tiltak)
         const cols = {
           nr: nrColOffset,
           komponentSted: -1,
@@ -919,7 +878,6 @@
             cols.komponentSted !== -1 ? String(row[cols.komponentSted] ?? '').trim() : '';
           const fareVal = cols.farer !== -1 ? String(row[cols.farer] ?? '').trim() : '';
 
-          // Skip completely blank or summary/footer rows without Nr. and content
           if (!nrVal && !compVal && !fareVal) continue;
           if (!nrVal && compVal && !fareVal) continue;
 
@@ -985,7 +943,6 @@
         render();
 
         try {
-          // Map existing rammeverk by normalized Nr. to update cleanly instead of duplicating
           const existingByNr = new Map();
           state.rammeverk.forEach((item) => {
             const key = String(item.nr ?? '').trim().toLowerCase();
@@ -1050,13 +1007,11 @@
                   status: row.status || 'Ikke startet',
                   merknad: '',
                   updatedAt: now,
-                  updatedBy: state.user?.email || '',
                 },
               });
             }
           });
 
-          // Firestore batches support up to 500 writes; use 400 per chunk for safety
           const CHUNK_SIZE = 400;
           for (let i = 0; i < ops.length; i += CHUNK_SIZE) {
             const batch = writeBatch(db);
@@ -1098,7 +1053,7 @@
         }
 
         const headerTitle = [
-          [`Hvittingsfoss Alpinklubb – Årlig risikovurdering ${year}`],
+          [`Hvittingsfoss Alpinklubb – Risikoanalyse & SJA ${year}`],
           [
             `Eksportert: ${new Intl.DateTimeFormat('nb-NO', {
               dateStyle: 'long',
@@ -1199,99 +1154,6 @@
         `;
       }
 
-      function renderLoginScreen() {
-        return `
-          <main class="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
-            <div class="w-full max-w-md bg-white border border-slate-200 rounded-xl p-8">
-              <div class="mb-7">
-                <div class="flex items-center gap-3 mb-4">
-                  <div class="h-10 w-10 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0" aria-hidden="true">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 19l6.5-11 4 6.5L16.5 10 21 19H3z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h1 class="text-xl font-bold tracking-tight text-slate-900">Hvittingsfoss Alpinklubb</h1>
-                    <p class="text-xs text-slate-500">Årlig og daglig risikovurdering</p>
-                  </div>
-                </div>
-                <p class="text-sm text-slate-600 leading-relaxed">
-                  Logg inn med din klubbkonto for å se daglig oversikt, gjennomføre årlig risikovurdering og oppdatere tiltak.
-                </p>
-              </div>
-
-              ${
-                state.authError
-                  ? `<div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-800" role="alert">${escapeHtml(
-                      state.authError
-                    )}</div>`
-                  : ''
-              }
-              ${
-                state.authInfo
-                  ? `<div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800" role="status">${escapeHtml(
-                      state.authInfo
-                    )}</div>`
-                  : ''
-              }
-
-              <form id="login-form" class="space-y-4">
-                <div>
-                  <label for="login-email" class="block text-sm font-medium text-slate-700 mb-1.5">
-                    E-postadresse
-                  </label>
-                  <input
-                    id="login-email"
-                    name="email"
-                    type="email"
-                    required
-                    autocomplete="email"
-                    placeholder="navn@hvittingsfoss.no"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-                  />
-                </div>
-
-                <div>
-                  <div class="flex items-center justify-between mb-1.5">
-                    <label for="login-password" class="block text-sm font-medium text-slate-700">
-                      Passord
-                    </label>
-                    <button
-                      type="button"
-                      id="forgot-password-btn"
-                      class="text-xs font-medium text-blue-700 hover:text-blue-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
-                    >
-                      Glemt passord?
-                    </button>
-                  </div>
-                  <input
-                    id="login-password"
-                    name="password"
-                    type="password"
-                    required
-                    autocomplete="current-password"
-                    placeholder="••••••••"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  ${state.authSubmitting ? 'disabled' : ''}
-                  class="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-                >
-                  ${state.authSubmitting ? 'Logger inn…' : 'Logg inn'}
-                </button>
-              </form>
-
-              <p class="mt-6 pt-5 border-t border-slate-100 text-xs text-slate-500">
-                Tilgang gis kun til autoriserte brukere registrert i klubbens Firebase-prosjekt.
-              </p>
-            </div>
-          </main>
-        `;
-      }
-
       function renderTopHeader() {
         const tabs = [
           { id: 'dashboard', label: 'Daglig oversikt' },
@@ -1302,19 +1164,31 @@
 
         return `
           <header class="print-hidden sticky top-0 z-30 bg-white border-b border-slate-200">
-            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
-             <a href="index.html" class="inline-flex items-center px-3 py-1.5 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition shrink-0">← Hovedportal</a> 
-              <!-- Zone 1: Brand wordmark (single line) -->
-              <a
-                href="#dashboard"
-                data-tab-link="dashboard"
-                class="text-base sm:text-lg font-display font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
-              >
-                Hvittingsfoss Alpinklubb
-              </a>
+            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4 sm:gap-8">
+              <!-- Sone 1: Tilbake til hovedmeny + Modulnavn -->
+              <div class="flex items-center gap-3 min-w-0">
+                <a
+                  href="index.html"
+                  class="inline-flex items-center gap-2 min-h-[40px] px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-800 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                >
+                  <svg class="w-4 h-4 text-slate-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span class="hidden sm:inline">Tilbake til hovedmeny</span>
+                  <span class="sm:hidden">Hovedmeny</span>
+                </a>
 
-              <!-- Zone 2: Primary navigation links -->
-              <nav class="hidden md:flex items-center gap-6" aria-label="Hovedmeny">
+                <a
+                  href="#dashboard"
+                  data-tab-link="dashboard"
+                  class="text-sm sm:text-base lg:text-lg font-display font-bold tracking-tight text-slate-900 whitespace-nowrap truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
+                >
+                  Risikoanalyse &amp; SJA
+                </a>
+              </div>
+
+              <!-- Sone 2: Modulens hovedfaner (desktop) -->
+              <nav class="hidden lg:flex items-center gap-6" aria-label="Modulmeny">
                 ${tabs
                   .map((t) => {
                     const active = state.activeTab === t.id;
@@ -1340,25 +1214,14 @@
                   .join('')}
               </nav>
 
-              <!-- Zone 3: Single primary action -->
-              <div class="flex items-center gap-4 shrink-0">
-                <span class="hidden lg:inline text-xs text-slate-500 truncate max-w-[180px]" title="${escapeHtml(
-                  state.user?.email || ''
-                )}">
-                  ${escapeHtml(state.user?.email || '')}
-                </span>
-                <button
-                  type="button"
-                  id="logout-btn"
-                  class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-                >
-                  Logg ut
-                </button>
-              </div>
+              <!-- Sone 3: Klubbnavn -->
+              <span class="hidden md:inline text-xs font-medium text-slate-500 whitespace-nowrap shrink-0">
+                Hvittingsfoss Alpinklubb
+              </span>
             </div>
 
-            <!-- Mobile Horizontal Tab Bar -->
-            <div class="md:hidden border-t border-slate-100 bg-white overflow-x-auto custom-scroll">
+            <!-- Mobil og nettbrett fanevelger -->
+            <div class="lg:hidden border-t border-slate-100 bg-white overflow-x-auto custom-scroll">
               <div class="flex items-center gap-1 px-4 py-2">
                 ${tabs
                   .map((t) => {
@@ -1391,7 +1254,6 @@
         const years = getAvailableYears();
         const yearAssessments = getAssessmentsForYear(state.selectedYear);
 
-        // Compute KPIs from all assessments for selected year
         let highCount = 0;
         let mediumCount = 0;
         let lowCount = 0;
@@ -1412,7 +1274,6 @@
           }
         });
 
-        // Apply search & filters
         const q = state.searchQuery.trim().toLowerCase();
         const filtered = yearAssessments.filter((item) => {
           const restScore =
@@ -1761,7 +1622,7 @@
                   data-tab-btn="framework"
                   class="mt-5 px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
                 >
-                  Gå til Rammeverk & Import
+                  Gå til Rammeverk &amp; Import
                 </button>
               </div>
             </section>
@@ -1909,7 +1770,7 @@
                   </div>
                 </div>
 
-                <!-- Master Info Grid (Clean surface, no nested card borders) -->
+                <!-- Master Info Grid -->
                 <div class="bg-slate-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span class="block text-xs font-medium text-slate-500 mb-1">Farer</span>
@@ -2126,7 +1987,7 @@
           <section class="space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Rammeverk & Excel-import</h1>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Rammeverk &amp; Excel-import</h1>
                 <p class="mt-1 text-sm text-slate-600">
                   Grunnsjekkliste i Firestore («rammeverk») med automatisk import fra klubbens Excel-mal.
                 </p>
@@ -2226,7 +2087,6 @@
                           : ''
                       }
 
-                      <!-- Preview table (first 8 rows) -->
                       <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-72 custom-scroll">
                         <table class="w-full text-left border-collapse text-xs">
                           <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 sticky top-0">
@@ -2434,7 +2294,6 @@
       // Tab 5: RAPPORTERING & EKSPORT
       // ------------------------------------------------------------------
       function renderMatrixLegendGrid() {
-        // 5x5 grid: Sannsynlighet (5 down to 1) x Konsekvens (1 to 5)
         const rows = [5, 4, 3, 2, 1];
         const cols = [1, 2, 3, 4, 5];
 
@@ -2502,7 +2361,7 @@
             <!-- Controls Bar (Hidden in Print) -->
             <div class="print-hidden flex flex-col lg:flex-row lg:items-end justify-between gap-4">
               <div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Rapportering & Eksport</h1>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Rapportering &amp; Eksport</h1>
                 <p class="mt-1 text-sm text-slate-600">
                   Last ned komplett risikoanalyse i Excel/CSV eller skriv ut offisiell årsrapport som PDF.
                 </p>
@@ -2552,21 +2411,17 @@
 
             <!-- Printable Report Sheet -->
             <div class="print-container bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-6">
-              <!-- Report Header -->
               <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-6 border-b border-slate-200">
                 <div>
                   <p class="text-xs font-medium text-slate-500">Årsrapport · Internkontroll og sikkerhet</p>
                   <h2 class="mt-1 text-2xl font-bold text-slate-900">
-                    Hvittingsfoss Alpinklubb – Risikovurdering ${escapeHtml(state.reportYear)}
+                    Hvittingsfoss Alpinklubb – Risikoanalyse &amp; SJA ${escapeHtml(state.reportYear)}
                   </h2>
                   <p class="mt-1 text-sm text-slate-600">
-                    Dato: ${escapeHtml(todayFormatted)} · Utarbeidet av: ${escapeHtml(
-                      state.user?.email || 'Alpinklubben'
-                    )}
+                    Dato: ${escapeHtml(todayFormatted)} · Utarbeidet for: Hvittingsfoss Alpinklubb
                   </p>
                 </div>
 
-                <!-- Summary Counts -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                   <div class="border border-slate-200 rounded-lg px-3.5 py-2">
                     <span class="block text-[11px] text-slate-500">Totalt</span>
@@ -2587,7 +2442,6 @@
                 </div>
               </div>
 
-              <!-- Risk Matrix Explanation -->
               <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center pb-6 border-b border-slate-200">
                 <div class="lg:col-span-7 space-y-2 text-sm text-slate-700">
                   <h3 class="text-sm font-semibold text-slate-900">Risikomatrise og vurderingskriterier</h3>
@@ -2618,7 +2472,6 @@
                 </div>
               </div>
 
-              <!-- Full Report Table -->
               ${
                 rows.length === 0
                   ? `
@@ -2748,7 +2601,6 @@
         const modalRoot = document.getElementById('modal-root');
         if (!modalRoot) return;
 
-        // 1. Assessment Row Editor Modal
         if (state.editingAssessmentDraft) {
           const d = state.editingAssessmentDraft;
           const initScore = computeRisk(
@@ -2926,7 +2778,7 @@
                     d.updatedAt
                       ? `<p class="text-[11px] text-slate-500">Sist lagret: ${escapeHtml(
                           formatDateTimeNo(d.updatedAt)
-                        )} ${d.updatedBy ? 'av ' + escapeHtml(d.updatedBy) : ''}</p>`
+                        )}</p>`
                       : ''
                   }
 
@@ -2953,7 +2805,6 @@
           return;
         }
 
-        // 2. Framework Item Add/Edit Modal
         if (state.editingFrameworkItem) {
           const fw = state.editingFrameworkItem;
           modalRoot.innerHTML = `
@@ -3041,32 +2892,127 @@
         modalRoot.innerHTML = '';
       }
 
+      function renderPermissionHelpCard() {
+        const rulesSnippet = [
+          "rules_version = '2';",
+          'service cloud.firestore {',
+          '  match /databases/{database}/documents {',
+          '    match /rammeverk/{doc} {',
+          '      allow read, write: if true;',
+          '    }',
+          '    match /vurderinger/{doc} {',
+          '      allow read, write: if true;',
+          '    }',
+          '  }',
+          '}',
+        ].join('\n');
+
+        return `
+          <div class="print-hidden mb-6 rounded-xl border border-amber-300 bg-white p-6 shadow-sm space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">
+                  Tilgang til Firestore må aktiveres for modulen
+                </h2>
+                <p class="mt-1 text-sm text-slate-700 leading-relaxed">
+                  ${escapeHtml(state.dataError)}
+                </p>
+              </div>
+              <button
+                type="button"
+                id="retry-firestore-btn"
+                class="px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 whitespace-nowrap shrink-0"
+              >
+                Prøv på nytt
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-4 border-t border-slate-200">
+              <div class="space-y-2.5">
+                <h3 class="text-sm font-semibold text-slate-900">
+                  Alternativ 1: Tillat åpen tilgang i Firebase Console (ingen innlogging)
+                </h3>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                  Åpne <strong>Firebase Console → risikoanalyse-c5838 → Firestore Database → Rules</strong> og oppdater reglene (eller aktiver <strong>Anonymous</strong> under <em>Authentication → Sign-in method</em>):
+                </p>
+                <pre class="rounded-lg bg-slate-900 text-slate-100 p-3 text-xs font-mono overflow-x-auto leading-relaxed">${escapeHtml(
+                  rulesSnippet
+                )}</pre>
+                <button
+                  type="button"
+                  id="copy-firestore-rules-btn"
+                  class="px-3.5 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  Kopier Firestore-regler
+                </button>
+              </div>
+
+              <div class="space-y-3">
+                <h3 class="text-sm font-semibold text-slate-900">
+                  Alternativ 2: Beholde reglene og bekrefte tilgang én gang
+                </h3>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                  Hvis reglene i <code class="font-mono bg-slate-100 px-1 rounded">risikoanalyse-c5838</code> krever en registrert bruker, kan du bekrefte kontoen én gang her (lagres i nettleseren):
+                </p>
+                ${
+                  state.showOptionalAuthForm
+                    ? `
+                      <form id="optional-auth-form" class="space-y-3 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        ${
+                          state.optionalAuthError
+                            ? `<p class="text-xs font-medium text-red-700">${escapeHtml(
+                                state.optionalAuthError
+                              )}</p>`
+                            : ''
+                        }
+                        <div>
+                          <label for="opt-auth-email" class="block text-xs font-medium text-slate-700 mb-1">E-post</label>
+                          <input id="opt-auth-email" type="email" required placeholder="navn@hvittingsfoss.no" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900" />
+                        </div>
+                        <div>
+                          <label for="opt-auth-password" class="block text-xs font-medium text-slate-700 mb-1">Passord</label>
+                          <input id="opt-auth-password" type="password" required placeholder="••••••••" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900" />
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <button
+                            type="submit"
+                            ${state.optionalAuthSubmitting ? 'disabled' : ''}
+                            class="px-4 py-2 text-xs font-semibold text-white bg-blue-700 rounded-lg hover:bg-blue-800 disabled:opacity-60"
+                          >
+                            ${state.optionalAuthSubmitting ? 'Kobler til…' : 'Bekreft tilgang'}
+                          </button>
+                          <button
+                            type="button"
+                            id="cancel-optional-auth-btn"
+                            class="px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900"
+                          >
+                            Avbryt
+                          </button>
+                        </div>
+                      </form>
+                    `
+                    : `
+                      <button
+                        type="button"
+                        id="open-optional-auth-btn"
+                        class="px-4 py-2 text-xs font-semibold text-blue-800 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        Koble til med eksisterende konto
+                      </button>
+                    `
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       // ------------------------------------------------------------------
       // 11. Main Render Function & Event Binding
       // ------------------------------------------------------------------
       function render() {
         const root = document.getElementById('app');
         if (!root) return;
-
-        if (state.authLoading) {
-          root.innerHTML = `
-            <div class="min-h-screen flex items-center justify-center p-6">
-              <div class="text-center space-y-3">
-                <div class="inline-block h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-blue-700"></div>
-                <p class="text-sm text-slate-500">Kontrollerer innlogging…</p>
-              </div>
-            </div>
-          `;
-          renderModals();
-          return;
-        }
-
-        if (!state.user) {
-          root.innerHTML = renderLoginScreen();
-          bindLoginEvents();
-          renderModals();
-          return;
-        }
 
         let mainContent = '';
         if (state.dataLoading) {
@@ -3076,7 +3022,7 @@
               <p class="text-sm text-slate-500">Henter data fra Firestore…</p>
             </div>
           `;
-        } else {
+        } else if (!state.permissionDenied) {
           switch (state.activeTab) {
             case 'wizard':
               mainContent = renderWizardView();
@@ -3098,7 +3044,9 @@
           ${renderTopHeader()}
           <main class="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             ${
-              state.dataError
+              state.permissionDenied
+                ? renderPermissionHelpCard()
+                : state.dataError
                 ? `<div class="print-hidden mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">${escapeHtml(
                     state.dataError
                   )}</div>`
@@ -3108,7 +3056,7 @@
           </main>
           <footer class="print-hidden border-t border-slate-200 bg-white mt-auto">
             <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-              <span>Hvittingsfoss Alpinklubb · Risikovurdering og HMS</span>
+              <span>Hvittingsfoss Alpinklubb · Risikoanalyse &amp; SJA</span>
               <span>Risikotall = Sannsynlighet (1–5) × Konsekvens (1–5)</span>
             </div>
           </footer>
@@ -3121,57 +3069,67 @@
       // ------------------------------------------------------------------
       // 12. Event Listeners
       // ------------------------------------------------------------------
-      function bindLoginEvents() {
-        const form = document.getElementById('login-form');
-        if (form) {
-          form.addEventListener('submit', async (e) => {
+      function bindWorkspaceEvents() {
+        // Permission recovery actions (if Firestore rules block unauthenticated access)
+        document.getElementById('retry-firestore-btn')?.addEventListener('click', () => {
+          startFirestoreListeners();
+          render();
+        });
+
+        document
+          .getElementById('copy-firestore-rules-btn')
+          ?.addEventListener('click', async () => {
+            const snippet = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /rammeverk/{doc} {\n      allow read, write: if true;\n    }\n    match /vurderinger/{doc} {\n      allow read, write: if true;\n    }\n  }\n}`;
+            try {
+              await navigator.clipboard.writeText(snippet);
+              showToast('Firestore-regler kopiert til utklippstavlen.');
+            } catch {
+              showToast('Kunne ikke kopiere automatisk.', 'info');
+            }
+          });
+
+        document.getElementById('open-optional-auth-btn')?.addEventListener('click', () => {
+          state.showOptionalAuthForm = true;
+          state.optionalAuthError = '';
+          render();
+        });
+
+        document
+          .getElementById('cancel-optional-auth-btn')
+          ?.addEventListener('click', () => {
+            state.showOptionalAuthForm = false;
+            state.optionalAuthError = '';
+            render();
+          });
+
+        document
+          .getElementById('optional-auth-form')
+          ?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email')?.value.trim() || '';
-            const password = document.getElementById('login-password')?.value || '';
+            const email = document.getElementById('opt-auth-email')?.value.trim() || '';
+            const password = document.getElementById('opt-auth-password')?.value || '';
             if (!email || !password) return;
 
-            state.authSubmitting = true;
-            state.authError = '';
-            state.authInfo = '';
+            state.optionalAuthSubmitting = true;
+            state.optionalAuthError = '';
             render();
 
             try {
               await signInWithEmailAndPassword(auth, email, password);
+              state.showOptionalAuthForm = false;
+              state.permissionDenied = false;
+              state.dataError = '';
+              startFirestoreListeners();
             } catch (err) {
-              console.error('Login failed:', err);
-              state.authError = translateAuthError(err);
+              console.warn('Optional auth failed:', err);
+              state.optionalAuthError =
+                'Feil e-post eller passord for prosjektet risikoanalyse-c5838.';
             } finally {
-              state.authSubmitting = false;
+              state.optionalAuthSubmitting = false;
               render();
             }
           });
-        }
 
-        const forgotBtn = document.getElementById('forgot-password-btn');
-        if (forgotBtn) {
-          forgotBtn.addEventListener('click', async () => {
-            const email = document.getElementById('login-email')?.value.trim() || '';
-            if (!email) {
-              state.authError = 'Skriv inn e-postadressen din først for å tilbakestille passord.';
-              state.authInfo = '';
-              render();
-              return;
-            }
-            try {
-              await sendPasswordResetEmail(auth, email);
-              state.authError = '';
-              state.authInfo = `E-post for tilbakestilling av passord er sendt til ${email}.`;
-              render();
-            } catch (err) {
-              state.authError = translateAuthError(err);
-              state.authInfo = '';
-              render();
-            }
-          });
-        }
-      }
-
-      function bindWorkspaceEvents() {
         // Tab navigation
         document.querySelectorAll('[data-tab-btn], [data-tab-link]').forEach((btn) => {
           btn.addEventListener('click', (e) => {
@@ -3184,17 +3142,6 @@
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           });
-        });
-
-        // Logout
-        document.getElementById('logout-btn')?.addEventListener('click', async () => {
-          try {
-            await signOut(auth);
-            showToast('Logget ut', 'info');
-          } catch (err) {
-            console.error(err);
-            showToast('Kunne ikke logge ut.', 'error');
-          }
         });
 
         // ---------------- Dashboard Events ----------------
@@ -3441,7 +3388,6 @@
             const id = btn.dataset.deleteFramework;
             const item = state.rammeverk.find((x) => x.id === id);
             if (!item) return;
-            // Inline two-step confirm via button state or clean modal? Use clean native confirm avoidance -> custom confirm modal or direct inline confirm!
             if (btn.dataset.confirmDelete !== 'true') {
               btn.dataset.confirmDelete = 'true';
               btn.textContent = 'Bekreft slett?';
@@ -3705,23 +3651,30 @@
       }
 
       // ------------------------------------------------------------------
-      // 13. Auth Lifecycle Observer
+      // 13. Start module directly without login screen
+      //     (reuses cached auth session or attempts silent anonymous auth)
       // ------------------------------------------------------------------
-      onAuthStateChanged(auth, (user) => {
-        state.authLoading = false;
-        state.user = user;
-        state.authError = '';
-        state.authInfo = '';
+      let authBootstrapped = false;
+      render();
 
+      onAuthStateChanged(auth, async (user) => {
         if (user) {
+          authBootstrapped = true;
           startFirestoreListeners();
-        } else {
-          stopFirestoreListeners();
-          state.rammeverk = [];
-          state.vurderinger = [];
-          state.wizardDraft = null;
+          return;
         }
-        render();
+
+        if (!authBootstrapped) {
+          authBootstrapped = true;
+          try {
+            await signInAnonymously(auth);
+            // onAuthStateChanged fires with the anonymous user and starts listeners
+          } catch (err) {
+            // If Anonymous Auth is disabled in Firebase Console, still attempt direct Firestore access
+            console.info('Anonymous auth unavailable, trying direct Firestore access:', err?.code);
+            startFirestoreListeners();
+          }
+        }
       });
     </script>
   </body>

@@ -1,0 +1,3728 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hvittingsfoss Alpinklubb – Risikovurdering</title>
+    <meta
+      name="description"
+      content="Webapp for årlig og daglig risikovurdering, rammeverk, Excel-import og rapportering for Hvittingsfoss Alpinklubb."
+    />
+    <meta property="og:title" content="Hvittingsfoss Alpinklubb – Risikovurdering" />
+    <meta
+      property="og:description"
+      content="Webapp for årlig og daglig risikovurdering, rammeverk, Excel-import og rapportering for Hvittingsfoss Alpinklubb."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Fonts: Plus Jakarta Sans (Display), DM Sans (Body), JetBrains Mono (Tabular data) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+              sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            },
+            colors: {
+              alpine: {
+                50: '#F0F5FA',
+                100: '#E0EAF4',
+                200: '#BFD4E9',
+                500: '#2563EB',
+                600: '#1D4ED8',
+                700: '#1E40AF',
+                900: '#0F172A',
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- SheetJS (xlsx) CDN for Excel / CSV Import & Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        background-color: #F8FAFC;
+        color: #0F172A;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      }
+
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Custom scrollbar for dense tables & sidebars */
+      .custom-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .custom-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scroll::-webkit-scrollbar-thumb {
+        background: #CBD5E1;
+        border-radius: 3px;
+      }
+      .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: #94A3B8;
+      }
+
+      /* Print Stylesheet for Annual Report (PDF) */
+      @media print {
+        @page {
+          size: A4 landscape;
+          margin: 12mm;
+        }
+
+        body {
+          background: #FFFFFF !important;
+          color: #0F172A !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        .print-hidden,
+        header,
+        nav,
+        button.print-hidden {
+          display: none !important;
+        }
+
+        .print-only-block {
+          display: block !important;
+        }
+
+        .print-container {
+          max-width: none !important;
+          width: 100% !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+
+        table {
+          page-break-inside: auto;
+          border-collapse: collapse;
+          width: 100%;
+        }
+
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+
+        thead {
+          display: table-header-group;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900 selection:bg-blue-100 selection:text-blue-900">
+    <!-- App Mount Root -->
+    <div id="app" class="min-h-screen flex flex-col">
+      <div class="flex-1 flex items-center justify-center p-6">
+        <div class="text-center space-y-3">
+          <div class="inline-block h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-blue-700"></div>
+          <p class="text-sm text-slate-500">Laster Hvittingsfoss Alpinklubb Risikovurdering…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal / Drawer Container -->
+    <div id="modal-root"></div>
+
+    <!-- Global Role Suggestions Datalist -->
+    <datalist id="role-suggestions-list">
+      <option value="Driftsleder"></option>
+      <option value="Heisfører"></option>
+      <option value="Tråkkemaskinfører"></option>
+      <option value="Skipatrulje"></option>
+      <option value="Anleggsansvarlig"></option>
+      <option value="Daglig leder"></option>
+      <option value="Snøproduksjonsansvarlig"></option>
+      <option value="Vaktleder"></option>
+    </datalist>
+
+    <!-- Toast Notification Container -->
+    <div
+      id="toast-root"
+      class="print-hidden fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"
+      aria-live="polite"
+    ></div>
+
+    <!-- Main Application Script (Firebase SDK v10+ via CDN) -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signInWithEmailAndPassword,
+        sendPasswordResetEmail,
+        signOut,
+      } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+      import {
+        getFirestore,
+        collection,
+        doc,
+        setDoc,
+        addDoc,
+        updateDoc,
+        deleteDoc,
+        onSnapshot,
+        writeBatch,
+      } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+      // ------------------------------------------------------------------
+      // 1. Firebase Configuration & Initialization
+      // ------------------------------------------------------------------
+      const firebaseConfig = {
+  apiKey: "AIzaSyAWeWaeXIUO4sCOSmuCFMxiM_aEufmajBs",
+  authDomain: "risikoanalyse-c5838.firebaseapp.com",
+  projectId: "risikoanalyse-c5838",
+  storageBucket: "risikoanalyse-c5838.firebasestorage.app",
+  messagingSenderId: "185947039818",
+  appId: "1:185947039818:web:cc91020246c94b304f5eb3"
+};
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // ------------------------------------------------------------------
+      // 2. Constants & Domain Logic (Hvittingsfoss Alpinklubb Risk Matrix)
+      // ------------------------------------------------------------------
+      const CURRENT_YEAR = new Date().getFullYear();
+      const GEMINI_KEY_STORAGE = 'hak_gemini_api_key';
+
+      const STATUS_OPTIONS = ['Ikke startet', 'Pågår', 'Utført / Kontrollert'];
+
+      const PROBABILITY_LABELS = {
+        1: '1 · Svært liten',
+        2: '2 · Liten',
+        3: '3 · Middels',
+        4: '4 · Stor',
+        5: '5 · Svært stor',
+      };
+
+      const CONSEQUENCE_LABELS = {
+        1: '1 · Ubetydelig',
+        2: '2 · Mindre',
+        3: '3 · Moderat',
+        4: '4 · Alvorlig',
+        5: '5 · Svært alvorlig',
+      };
+
+      const ROLE_SUGGESTIONS = [
+        'Driftsleder',
+        'Heisfører',
+        'Tråkkemaskinfører',
+        'Skipatrulje',
+        'Anleggsansvarlig',
+        'Daglig leder',
+        'Snøproduksjonsansvarlig',
+        'Vaktleder',
+      ];
+
+      function clampRating(value, fallback = 1) {
+        const num = parseInt(value, 10);
+        if (Number.isNaN(num)) return fallback;
+        return Math.min(5, Math.max(1, num));
+      }
+
+      function computeRisk(s, k) {
+        const prob = clampRating(s, 1);
+        const cons = clampRating(k, 1);
+        return prob * cons;
+      }
+
+      function getRiskMeta(score) {
+        const num = Number(score) || 0;
+        if (num >= 16) {
+          return {
+            level: 'Høy',
+            key: 'high',
+            bgClass: 'bg-red-50 text-red-800 border-red-200',
+            printBg: '#FEF2F2',
+            printText: '#991B1B',
+            dotClass: 'bg-red-600',
+            range: '16–25',
+          };
+        }
+        if (num >= 6) {
+          return {
+            level: 'Middels',
+            key: 'medium',
+            bgClass: 'bg-amber-50 text-amber-800 border-amber-200',
+            printBg: '#FFFBEB',
+            printText: '#92400E',
+            dotClass: 'bg-amber-500',
+            range: '6–15',
+          };
+        }
+        return {
+          level: 'Lav',
+          key: 'low',
+          bgClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+          printBg: '#ECFDF5',
+          printText: '#065F46',
+          dotClass: 'bg-emerald-600',
+          range: '1–5',
+        };
+      }
+
+      function naturalSortNr(a, b) {
+        const nrA = String(a?.nr ?? '').trim();
+        const nrB = String(b?.nr ?? '').trim();
+        return nrA.localeCompare(nrB, 'nb', { numeric: true, sensitivity: 'base' });
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function makeDocId(year, rammeverkId, nr) {
+        const safeRef = String(rammeverkId || nr || 'item')
+          .trim()
+          .replace(/[^a-zA-Z0-9_-]/g, '_');
+        return `${year}_${safeRef}`;
+      }
+
+      function formatDateTimeNo(isoString) {
+        if (!isoString) return 'Ikke registrert';
+        try {
+          return new Intl.DateTimeFormat('nb-NO', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(isoString));
+        } catch {
+          return isoString;
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 3. Application State
+      // ------------------------------------------------------------------
+      const state = {
+        authLoading: true,
+        user: null,
+        authError: '',
+        authInfo: '',
+        authSubmitting: false,
+
+        activeTab: 'dashboard', // 'dashboard' | 'wizard' | 'framework' | 'reporting'
+        selectedYear: CURRENT_YEAR,
+        wizardYear: CURRENT_YEAR,
+        reportYear: CURRENT_YEAR,
+
+        rammeverk: [],
+        vurderinger: [],
+        dataLoading: false,
+        dataError: '',
+
+        // Dashboard filters
+        searchQuery: '',
+        riskFilter: 'all', // 'all' | 'high' | 'medium' | 'low'
+        statusFilter: 'all', // 'all' | 'Ikke startet' | 'Pågår' | 'Utført / Kontrollert' | 'missing'
+
+        // Wizard state
+        wizardSelectedIndex: 0,
+        wizardDraft: null,
+        wizardSaving: false,
+        aiSuggesting: false,
+
+        // Framework & Excel Import state
+        frameworkSearch: '',
+        importPreview: null, // { sheetName, headerRowNumber, rows, fileName }
+        importIncludeHistory: true,
+        importHistoryYear: 2025,
+        importing: false,
+        importError: '',
+
+        // Modal / Drawer state
+        editingAssessmentId: null, // vurdering docId
+        editingAssessmentDraft: null,
+        editingFrameworkItem: null, // null | { isNew, ... }
+
+        // Local Gemini API key
+        geminiKey: localStorage.getItem(GEMINI_KEY_STORAGE) || '',
+        geminiKeyVisible: false,
+
+        // Active Firestore unsubscribers
+        unsubRammeverk: null,
+        unsubVurderinger: null,
+      };
+
+      // ------------------------------------------------------------------
+      // 4. Toast Notification Helper
+      // ------------------------------------------------------------------
+      function showToast(message, type = 'success') {
+        const root = document.getElementById('toast-root');
+        if (!root) return;
+        const el = document.createElement('div');
+        const palette =
+          type === 'error'
+            ? 'bg-red-900 text-white border-red-800'
+            : type === 'info'
+            ? 'bg-slate-900 text-white border-slate-800'
+            : 'bg-emerald-800 text-white border-emerald-700';
+
+        el.className = `pointer-events-auto flex items-center gap-2.5 rounded-lg border px-4 py-2.5 text-sm font-medium shadow-lg transition-all duration-200 ${palette}`;
+        el.innerHTML = `<span>${escapeHtml(message)}</span>`;
+        root.appendChild(el);
+
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(6px)';
+          setTimeout(() => el.remove(), 220);
+        }, 3200);
+      }
+
+      // ------------------------------------------------------------------
+      // 5. Data Helpers & Derived Lists
+      // ------------------------------------------------------------------
+      function getAvailableYears() {
+        const years = new Set([2025, 2026, CURRENT_YEAR, CURRENT_YEAR + 1]);
+        state.vurderinger.forEach((v) => {
+          const y = parseInt(v.arstall, 10);
+          if (!Number.isNaN(y) && y >= 2000 && y <= 2100) {
+            years.add(y);
+          }
+        });
+        years.add(Number(state.selectedYear));
+        years.add(Number(state.wizardYear));
+        years.add(Number(state.reportYear));
+        return Array.from(years).sort((a, b) => b - a);
+      }
+
+      function getAssessmentsForYear(year) {
+        const targetYear = Number(year);
+        return state.vurderinger
+          .filter((v) => Number(v.arstall) === targetYear)
+          .sort(naturalSortNr);
+      }
+
+      function findAssessmentForCheckpoint(year, rammeverkItem) {
+        const targetYear = Number(year);
+        return state.vurderinger.find(
+          (v) =>
+            Number(v.arstall) === targetYear &&
+            ((v.rammeverkId && v.rammeverkId === rammeverkItem.id) ||
+              (String(v.nr ?? '').trim() !== '' &&
+                String(v.nr).trim() === String(rammeverkItem.nr ?? '').trim()))
+        );
+      }
+
+      function buildWizardDraft(item, year) {
+        if (!item) return null;
+        const existing = findAssessmentForCheckpoint(year, item);
+        if (existing) {
+          return {
+            id: existing.id,
+            rammeverkId: item.id,
+            nr: item.nr,
+            komponentSted: item.komponentSted,
+            farer: item.farer,
+            muligeArsaker: item.muligeArsaker,
+            typeSkade: item.typeSkade,
+            innledendeSannsynlighet: clampRating(existing.innledendeSannsynlighet, 2),
+            innledendeKonsekvens: clampRating(existing.innledendeKonsekvens, 3),
+            tiltak: existing.tiltak ?? item.standardTiltak ?? '',
+            restSannsynlighet: clampRating(existing.restSannsynlighet, 1),
+            restKonsekvens: clampRating(existing.restKonsekvens, 2),
+            ansvarlig: existing.ansvarlig ?? item.standardAnsvarlig ?? '',
+            status: existing.status ?? 'Ikke startet',
+            merknad: existing.merknad ?? '',
+            isSaved: true,
+          };
+        }
+
+        const initS = clampRating(item.standardSannsynlighet, 2);
+        const initK = clampRating(item.standardKonsekvens, 3);
+        const restS = clampRating(item.standardRestSannsynlighet, 1);
+        const restK = clampRating(item.standardRestKonsekvens, Math.min(initK, 3));
+
+        return {
+          id: makeDocId(year, item.id, item.nr),
+          rammeverkId: item.id,
+          nr: item.nr,
+          komponentSted: item.komponentSted,
+          farer: item.farer,
+          muligeArsaker: item.muligeArsaker,
+          typeSkade: item.typeSkade,
+          innledendeSannsynlighet: initS,
+          innledendeKonsekvens: initK,
+          tiltak: item.standardTiltak ?? '',
+          restSannsynlighet: restS,
+          restKonsekvens: restK,
+          ansvarlig: item.standardAnsvarlig ?? '',
+          status: 'Ikke startet',
+          merknad: '',
+          isSaved: false,
+        };
+      }
+
+      function syncWizardDraft(preserveDirty = false) {
+        if (state.rammeverk.length === 0) {
+          state.wizardDraft = null;
+          return;
+        }
+        if (state.wizardSelectedIndex >= state.rammeverk.length) {
+          state.wizardSelectedIndex = 0;
+        }
+        const item = state.rammeverk[state.wizardSelectedIndex];
+        if (
+          preserveDirty &&
+          state.wizardDraft &&
+          state.wizardDraft.rammeverkId === item.id
+        ) {
+          return;
+        }
+        state.wizardDraft = buildWizardDraft(item, state.wizardYear);
+      }
+
+      // ------------------------------------------------------------------
+      // 6. Firestore Subscriptions & Mutations
+      // ------------------------------------------------------------------
+      function stopFirestoreListeners() {
+        if (typeof state.unsubRammeverk === 'function') {
+          state.unsubRammeverk();
+          state.unsubRammeverk = null;
+        }
+        if (typeof state.unsubVurderinger === 'function') {
+          state.unsubVurderinger();
+          state.unsubVurderinger = null;
+        }
+      }
+
+      function startFirestoreListeners() {
+        stopFirestoreListeners();
+        state.dataLoading = true;
+        state.dataError = '';
+
+        let rammeverkLoaded = false;
+        let vurderingerLoaded = false;
+
+        const finishCheck = () => {
+          if (rammeverkLoaded && vurderingerLoaded) {
+            state.dataLoading = false;
+            syncWizardDraft(true);
+            render();
+          }
+        };
+
+        state.unsubRammeverk = onSnapshot(
+          collection(db, 'rammeverk'),
+          (snapshot) => {
+            const list = snapshot.docs.map((d) => ({
+              id: d.id,
+              ...d.data(),
+            }));
+            list.sort(naturalSortNr);
+            state.rammeverk = list;
+            rammeverkLoaded = true;
+            syncWizardDraft(true);
+            finishCheck();
+            if (!state.dataLoading) render();
+          },
+          (err) => {
+            console.error('Firestore rammeverk error:', err);
+            state.dataError = translateFirestoreError(err);
+            state.dataLoading = false;
+            render();
+          }
+        );
+
+        state.unsubVurderinger = onSnapshot(
+          collection(db, 'vurderinger'),
+          (snapshot) => {
+            const list = snapshot.docs.map((d) => ({
+              id: d.id,
+              ...d.data(),
+            }));
+            list.sort(naturalSortNr);
+            state.vurderinger = list;
+            vurderingerLoaded = true;
+            finishCheck();
+            if (!state.dataLoading) render();
+          },
+          (err) => {
+            console.error('Firestore vurderinger error:', err);
+            state.dataError = translateFirestoreError(err);
+            state.dataLoading = false;
+            render();
+          }
+        );
+      }
+
+      function translateFirestoreError(err) {
+        const code = err?.code || '';
+        if (code === 'permission-denied') {
+          return 'Ingen tilgang til databasen (Firestore-regler). Kontroller at brukeren er logget inn og har lese-/skrivetilgang.';
+        }
+        if (code === 'unavailable') {
+          return 'Kan ikke kontakte Firestore akkurat nå. Sjekk internettforbindelsen.';
+        }
+        return `Databasefeil: ${err?.message || 'Ukjent feil'}`;
+      }
+
+      function translateAuthError(err) {
+        const code = String(err?.code || '');
+        if (code.includes('api-key-not-valid')) {
+          return 'Ugyldig Firebase API-nøkkel (apiKey) i firebaseConfig. Kopier gyldig Web API-nøkkel fra Firebase Console → Prosjektinnstillinger for prosjektet «risikoanalyse-c5838».';
+        }
+        if (code.includes('requests-from-referer')) {
+          return 'Dette domenet er blokkert av API-nøkkelens HTTP-referrer-begrensninger i Google Cloud Console.';
+        }
+        switch (code) {
+          case 'auth/invalid-credential':
+          case 'auth/wrong-password':
+          case 'auth/user-not-found':
+            return 'Feil e-postadresse eller passord.';
+          case 'auth/invalid-email':
+            return 'Ugyldig format på e-postadressen.';
+          case 'auth/operation-not-allowed':
+            return 'Innlogging med e-post og passord er ikke aktivert i Firebase Authentication (Sign-in method).';
+          case 'auth/unauthorized-domain':
+            return 'Dette domenet er ikke godkjent i Firebase Authentication → Settings → Authorized domains.';
+          case 'auth/too-many-requests':
+            return 'For mange mislykkede forsøk. Vent litt før du prøver igjen.';
+          case 'auth/network-request-failed':
+            return 'Nettverksfeil. Sjekk tilkoblingen og prøv på nytt.';
+          case 'auth/user-disabled':
+            return 'Denne brukerkontoen er deaktivert.';
+          default:
+            return `Kunne ikke logge inn (${code || 'ukjent feil'}).`;
+        }
+      }
+
+      async function saveAssessmentStatus(docId, newStatus) {
+        try {
+          await updateDoc(doc(db, 'vurderinger', docId), {
+            status: newStatus,
+            updatedAt: new Date().toISOString(),
+            updatedBy: state.user?.email || '',
+          });
+          showToast(`Status oppdatert til «${newStatus || 'Ikke satt'}»`);
+        } catch (err) {
+          console.error(err);
+          showToast(translateFirestoreError(err), 'error');
+        }
+      }
+
+      async function saveAssessmentRecord(payload, docId) {
+        const innledendeRisikotall = computeRisk(
+          payload.innledendeSannsynlighet,
+          payload.innledendeKonsekvens
+        );
+        const restRisikotall = computeRisk(
+          payload.restSannsynlighet,
+          payload.restKonsekvens
+        );
+
+        const dataToSave = {
+          arstall: Number(payload.arstall),
+          rammeverkId: payload.rammeverkId || '',
+          nr: String(payload.nr ?? '').trim(),
+          komponentSted: String(payload.komponentSted ?? '').trim(),
+          farer: String(payload.farer ?? '').trim(),
+          muligeArsaker: String(payload.muligeArsaker ?? '').trim(),
+          typeSkade: String(payload.typeSkade ?? '').trim(),
+          innledendeSannsynlighet: clampRating(payload.innledendeSannsynlighet, 1),
+          innledendeKonsekvens: clampRating(payload.innledendeKonsekvens, 1),
+          innledendeRisikotall,
+          tiltak: String(payload.tiltak ?? '').trim(),
+          restSannsynlighet: clampRating(payload.restSannsynlighet, 1),
+          restKonsekvens: clampRating(payload.restKonsekvens, 1),
+          restRisikotall,
+          ansvarlig: String(payload.ansvarlig ?? '').trim(),
+          status: payload.status ?? 'Ikke startet',
+          merknad: String(payload.merknad ?? '').trim(),
+          updatedAt: new Date().toISOString(),
+          updatedBy: state.user?.email || '',
+        };
+
+        await setDoc(doc(db, 'vurderinger', docId), dataToSave, { merge: true });
+      }
+
+      async function saveFrameworkItem(itemData, existingId) {
+        const cleanData = {
+          nr: String(itemData.nr ?? '').trim(),
+          komponentSted: String(itemData.komponentSted ?? '').trim(),
+          farer: String(itemData.farer ?? '').trim(),
+          muligeArsaker: String(itemData.muligeArsaker ?? '').trim(),
+          typeSkade: String(itemData.typeSkade ?? '').trim(),
+          standardSannsynlighet: clampRating(itemData.standardSannsynlighet, 2),
+          standardKonsekvens: clampRating(itemData.standardKonsekvens, 3),
+          standardTiltak: String(itemData.standardTiltak ?? '').trim(),
+          standardAnsvarlig: String(itemData.standardAnsvarlig ?? '').trim(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        if (existingId) {
+          await setDoc(doc(db, 'rammeverk', existingId), cleanData, { merge: true });
+        } else {
+          await addDoc(collection(db, 'rammeverk'), cleanData);
+        }
+      }
+
+      async function deleteFrameworkItem(id) {
+        await deleteDoc(doc(db, 'rammeverk', id));
+      }
+
+      // ------------------------------------------------------------------
+      // 7. Gemini AI Measure Suggestion (Optional Local Key)
+      // ------------------------------------------------------------------
+      async function requestGeminiSuggestion(context) {
+        const apiKey = (state.geminiKey || '').trim();
+        if (!apiKey) {
+          showToast(
+            'Legg inn en Gemini API-nøkkel under «Rapportering» for å bruke KI-forslag.',
+            'info'
+          );
+          return null;
+        }
+
+        const prompt = [
+          'Du er HMS- og sikkerhetsrådgiver for et norsk alpinanlegg (Hvittingsfoss Alpinklubb).',
+          'Foreslå 3 til 5 konkrete, praktiske og handlingsrettede risikoreduserende tiltak på norsk (bokmål) basert på følgende risikopunkt:',
+          `- Nr: ${context.nr || '-'}`,
+          `- Komponent/Sted: ${context.komponentSted || '-'}`,
+          `- Farer: ${context.farer || '-'}`,
+          `- Mulige årsaker: ${context.muligeArsaker || '-'}`,
+          `- Type skade/hendelse: ${context.typeSkade || '-'}`,
+          'Svar kortfattet med punktliste uten innledning eller avslutning.',
+        ].join('\n');
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(
+          apiKey
+        )}`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+          }),
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Gemini API svarte med feil (${response.status}): ${errText}`);
+        }
+
+        const data = await response.json();
+        const text =
+          data?.candidates?.[0]?.content?.parts
+            ?.map((p) => p.text || '')
+            .join('\n')
+            .trim() || '';
+
+        if (!text) {
+          throw new Error('Ingen tekst returnert fra Gemini.');
+        }
+        return text;
+      }
+
+      // ------------------------------------------------------------------
+      // 8. Excel / CSV Parsing (Finds row starting with "Nr." automatically)
+      // ------------------------------------------------------------------
+      function normalizeHeader(str) {
+        return String(str ?? '')
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, ' ');
+      }
+
+      function parseExcelWorksheet(workbook, preferredSheetName = null) {
+        if (!workbook || !workbook.SheetNames?.length) {
+          throw new Error('Filen inneholder ingen regneark.');
+        }
+
+        const sheetName =
+          preferredSheetName && workbook.SheetNames.includes(preferredSheetName)
+            ? preferredSheetName
+            : workbook.SheetNames[0];
+
+        const sheet = workbook.Sheets[sheetName];
+        const matrix = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+          defval: '',
+          blankrows: false,
+        });
+
+        // Locate header row where the first non-empty cell (or column 0/1) starts with "Nr." or "Nr"
+        let headerIdx = -1;
+        let nrColOffset = 0;
+
+        for (let r = 0; r < matrix.length; r++) {
+          const row = matrix[r];
+          if (!Array.isArray(row)) continue;
+
+          // Check first 3 columns for a cell starting with "Nr." or exact "Nr"
+          for (let c = 0; c < Math.min(row.length, 3); c++) {
+            const cell = String(row[c] ?? '').trim();
+            const lower = cell.toLowerCase();
+            if (lower === 'nr.' || lower === 'nr' || /^nr\.?\s*$/i.test(cell)) {
+              // Confirm row has other descriptive header columns to avoid accidental false positives
+              const joined = row.map((x) => String(x ?? '').toLowerCase()).join(' ');
+              if (
+                joined.includes('komponent') ||
+                joined.includes('sted') ||
+                joined.includes('fare') ||
+                joined.includes('årsak') ||
+                joined.includes('tiltak')
+              ) {
+                headerIdx = r;
+                nrColOffset = c;
+                break;
+              }
+            }
+          }
+          if (headerIdx !== -1) break;
+        }
+
+        // Fallback: check any row whose first cell starts with "Nr."
+        if (headerIdx === -1) {
+          for (let r = 0; r < matrix.length; r++) {
+            const row = matrix[r];
+            if (!Array.isArray(row)) continue;
+            const firstCell = String(row[0] ?? '').trim().toLowerCase();
+            if (firstCell.startsWith('nr.')) {
+              headerIdx = r;
+              nrColOffset = 0;
+              break;
+            }
+          }
+        }
+
+        if (headerIdx === -1) {
+          throw new Error(
+            'Fant ingen kolonneoverskrift som starter med «Nr.» i arket. Kontroller at Excel-filen følger klubbens mal.'
+          );
+        }
+
+        const headerRow = matrix[headerIdx];
+
+        // Map column indices carefully (handling duplicate Sannsynlighet / Konsekvens / Risikotall before and after Tiltak)
+        const cols = {
+          nr: nrColOffset,
+          komponentSted: -1,
+          farer: -1,
+          muligeArsaker: -1,
+          typeSkade: -1,
+          initS: -1,
+          initK: -1,
+          initR: -1,
+          tiltak: -1,
+          restS: -1,
+          restK: -1,
+          restR: -1,
+          ansvarlig: -1,
+          status: -1,
+        };
+
+        let seenTiltak = false;
+        for (let c = nrColOffset; c < headerRow.length; c++) {
+          const h = normalizeHeader(headerRow[c]);
+          if (!h) continue;
+
+          if ((h === 'nr.' || h === 'nr') && cols.nr === nrColOffset) {
+            cols.nr = c;
+          } else if (
+            cols.komponentSted === -1 &&
+            (h.includes('komponent') || h.includes('sted') || h.includes('område'))
+          ) {
+            cols.komponentSted = c;
+          } else if (cols.farer === -1 && h.includes('fare')) {
+            cols.farer = c;
+          } else if (cols.muligeArsaker === -1 && (h.includes('årsak') || h.includes('arsak'))) {
+            cols.muligeArsaker = c;
+          } else if (
+            cols.typeSkade === -1 &&
+            (h.includes('skade') || h.includes('hendelse'))
+          ) {
+            cols.typeSkade = c;
+          } else if (
+            h.includes('tiltak') ||
+            h.includes('eliminering') ||
+            h.includes('korrigerende')
+          ) {
+            cols.tiltak = c;
+            seenTiltak = true;
+          } else if (h.includes('sannsyn')) {
+            if (!seenTiltak && cols.initS === -1) {
+              cols.initS = c;
+            } else if (cols.restS === -1) {
+              cols.restS = c;
+            }
+          } else if (h.includes('konsekvens')) {
+            if (!seenTiltak && cols.initK === -1) {
+              cols.initK = c;
+            } else if (cols.restK === -1) {
+              cols.restK = c;
+            }
+          } else if (h.includes('risikotall') || h === 'risiko') {
+            if (!seenTiltak && cols.initR === -1) {
+              cols.initR = c;
+            } else if (cols.restR === -1) {
+              cols.restR = c;
+            }
+          } else if (cols.ansvarlig === -1 && h.includes('ansvar')) {
+            cols.ansvarlig = c;
+          } else if (cols.status === -1 && h.includes('status')) {
+            cols.status = c;
+          }
+        }
+
+        const parsedRows = [];
+        for (let r = headerIdx + 1; r < matrix.length; r++) {
+          const row = matrix[r];
+          if (!Array.isArray(row)) continue;
+
+          const nrVal = String(row[cols.nr] ?? '').trim();
+          const compVal =
+            cols.komponentSted !== -1 ? String(row[cols.komponentSted] ?? '').trim() : '';
+          const fareVal = cols.farer !== -1 ? String(row[cols.farer] ?? '').trim() : '';
+
+          // Skip completely blank or summary/footer rows without Nr. and content
+          if (!nrVal && !compVal && !fareVal) continue;
+          if (!nrVal && compVal && !fareVal) continue;
+
+          const initS = cols.initS !== -1 ? parseInt(row[cols.initS], 10) : NaN;
+          const initK = cols.initK !== -1 ? parseInt(row[cols.initK], 10) : NaN;
+          const restS = cols.restS !== -1 ? parseInt(row[cols.restS], 10) : NaN;
+          const restK = cols.restK !== -1 ? parseInt(row[cols.restK], 10) : NaN;
+
+          const rawStatus =
+            cols.status !== -1 ? String(row[cols.status] ?? '').trim() : '';
+          const normalizedStatus = STATUS_OPTIONS.includes(rawStatus)
+            ? rawStatus
+            : rawStatus.toLowerCase().includes('utført') ||
+              rawStatus.toLowerCase().includes('kontrollert')
+            ? 'Utført / Kontrollert'
+            : rawStatus.toLowerCase().includes('pågår')
+            ? 'Pågår'
+            : rawStatus.toLowerCase().includes('ikke')
+            ? 'Ikke startet'
+            : '';
+
+          parsedRows.push({
+            nr: nrVal || String(parsedRows.length + 1),
+            komponentSted: compVal,
+            farer: fareVal,
+            muligeArsaker:
+              cols.muligeArsaker !== -1 ? String(row[cols.muligeArsaker] ?? '').trim() : '',
+            typeSkade:
+              cols.typeSkade !== -1 ? String(row[cols.typeSkade] ?? '').trim() : '',
+            innledendeSannsynlighet: Number.isNaN(initS) ? 2 : clampRating(initS, 2),
+            innledendeKonsekvens: Number.isNaN(initK) ? 3 : clampRating(initK, 3),
+            hasInitialRatings: !Number.isNaN(initS) && !Number.isNaN(initK),
+            tiltak: cols.tiltak !== -1 ? String(row[cols.tiltak] ?? '').trim() : '',
+            restSannsynlighet: Number.isNaN(restS) ? 1 : clampRating(restS, 1),
+            restKonsekvens: Number.isNaN(restK) ? 2 : clampRating(restK, 2),
+            hasRestRatings: !Number.isNaN(restS) && !Number.isNaN(restK),
+            ansvarlig:
+              cols.ansvarlig !== -1 ? String(row[cols.ansvarlig] ?? '').trim() : '',
+            status: normalizedStatus,
+          });
+        }
+
+        if (parsedRows.length === 0) {
+          throw new Error(
+            `Fant overskriftsrad på rad ${headerIdx + 1}, men ingen datapunkter under denne.`
+          );
+        }
+
+        return {
+          sheetName,
+          sheetNames: workbook.SheetNames,
+          headerRowNumber: headerIdx + 1,
+          rows: parsedRows,
+        };
+      }
+
+      async function commitExcelImport() {
+        const preview = state.importPreview;
+        if (!preview || !preview.rows.length) return;
+
+        state.importing = true;
+        state.importError = '';
+        render();
+
+        try {
+          // Map existing rammeverk by normalized Nr. to update cleanly instead of duplicating
+          const existingByNr = new Map();
+          state.rammeverk.forEach((item) => {
+            const key = String(item.nr ?? '').trim().toLowerCase();
+            if (key) existingByNr.set(key, item);
+          });
+
+          const ops = [];
+          const now = new Date().toISOString();
+          const historyYear = parseInt(state.importHistoryYear, 10) || 2025;
+
+          preview.rows.forEach((row) => {
+            const nrKey = String(row.nr ?? '').trim().toLowerCase();
+            const existing = existingByNr.get(nrKey);
+            const rammeverkDocRef = existing
+              ? doc(db, 'rammeverk', existing.id)
+              : doc(collection(db, 'rammeverk'));
+
+            ops.push({
+              ref: rammeverkDocRef,
+              data: {
+                nr: row.nr,
+                komponentSted: row.komponentSted,
+                farer: row.farer,
+                muligeArsaker: row.muligeArsaker,
+                typeSkade: row.typeSkade,
+                standardSannsynlighet: row.innledendeSannsynlighet,
+                standardKonsekvens: row.innledendeKonsekvens,
+                standardRestSannsynlighet: row.restSannsynlighet,
+                standardRestKonsekvens: row.restKonsekvens,
+                standardTiltak: row.tiltak,
+                standardAnsvarlig: row.ansvarlig,
+                updatedAt: now,
+              },
+            });
+
+            if (state.importIncludeHistory) {
+              const vurderingId = makeDocId(historyYear, rammeverkDocRef.id, row.nr);
+              const vurderingRef = doc(db, 'vurderinger', vurderingId);
+              const initR = computeRisk(
+                row.innledendeSannsynlighet,
+                row.innledendeKonsekvens
+              );
+              const restR = computeRisk(row.restSannsynlighet, row.restKonsekvens);
+              ops.push({
+                ref: vurderingRef,
+                data: {
+                  arstall: historyYear,
+                  rammeverkId: rammeverkDocRef.id,
+                  nr: row.nr,
+                  komponentSted: row.komponentSted,
+                  farer: row.farer,
+                  muligeArsaker: row.muligeArsaker,
+                  typeSkade: row.typeSkade,
+                  innledendeSannsynlighet: row.innledendeSannsynlighet,
+                  innledendeKonsekvens: row.innledendeKonsekvens,
+                  innledendeRisikotall: initR,
+                  tiltak: row.tiltak,
+                  restSannsynlighet: row.restSannsynlighet,
+                  restKonsekvens: row.restKonsekvens,
+                  restRisikotall: restR,
+                  ansvarlig: row.ansvarlig,
+                  status: row.status || 'Ikke startet',
+                  merknad: '',
+                  updatedAt: now,
+                  updatedBy: state.user?.email || '',
+                },
+              });
+            }
+          });
+
+          // Firestore batches support up to 500 writes; use 400 per chunk for safety
+          const CHUNK_SIZE = 400;
+          for (let i = 0; i < ops.length; i += CHUNK_SIZE) {
+            const batch = writeBatch(db);
+            ops.slice(i, i + CHUNK_SIZE).forEach((op) => {
+              batch.set(op.ref, op.data, { merge: true });
+            });
+            await batch.commit();
+          }
+
+          const importedCount = preview.rows.length;
+          state.importPreview = null;
+          if (state.importIncludeHistory) {
+            state.selectedYear = historyYear;
+            state.reportYear = historyYear;
+          }
+          showToast(
+            state.importIncludeHistory
+              ? `Importerte ${importedCount} punkter til rammeverk og historikk for ${historyYear}.`
+              : `Importerte ${importedCount} punkter til rammeverket.`
+          );
+        } catch (err) {
+          console.error('Import commit error:', err);
+          state.importError = translateFirestoreError(err);
+          showToast('Feil under lagring til databasen.', 'error');
+        } finally {
+          state.importing = false;
+          render();
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 9. Excel & CSV Export
+      // ------------------------------------------------------------------
+      function exportYearAssessments(year, format = 'xlsx') {
+        const rows = getAssessmentsForYear(year);
+        if (!rows.length) {
+          showToast(`Ingen vurderinger å eksportere for ${year}.`, 'info');
+          return;
+        }
+
+        const headerTitle = [
+          [`Hvittingsfoss Alpinklubb – Årlig risikovurdering ${year}`],
+          [
+            `Eksportert: ${new Intl.DateTimeFormat('nb-NO', {
+              dateStyle: 'long',
+              timeStyle: 'short',
+            }).format(new Date())}`,
+          ],
+          ['Risikomatrise: 1–5 Lav (Grønn) | 6–15 Middels (Gul/Oransje) | 16–25 Høy (Rød)'],
+          [],
+        ];
+
+        const colHeaders = [
+          'Nr.',
+          'Komponent/Sted',
+          'Farer',
+          'Mulige årsaker',
+          'Type skade/hendelse',
+          'Sannsynlighet',
+          'Konsekvens',
+          'Risikotall',
+          'Iverksatte tiltak for eliminering av risiko',
+          'Restrisiko Sannsynlighet',
+          'Restrisiko Konsekvens',
+          'Restrisikotall',
+          'Risikonivå (Restrisiko)',
+          'Ansvarlig for oppfyllelse av krav',
+          'Status',
+        ];
+
+        const dataRows = rows.map((r) => {
+          const restScore = r.restRisikotall ?? computeRisk(r.restSannsynlighet, r.restKonsekvens);
+          const initScore =
+            r.innledendeRisikotall ??
+            computeRisk(r.innledendeSannsynlighet, r.innledendeKonsekvens);
+          return [
+            r.nr ?? '',
+            r.komponentSted ?? '',
+            r.farer ?? '',
+            r.muligeArsaker ?? '',
+            r.typeSkade ?? '',
+            r.innledendeSannsynlighet ?? '',
+            r.innledendeKonsekvens ?? '',
+            initScore,
+            r.tiltak ?? '',
+            r.restSannsynlighet ?? '',
+            r.restKonsekvens ?? '',
+            restScore,
+            getRiskMeta(restScore).level,
+            r.ansvarlig ?? '',
+            r.status || 'Ikke startet',
+          ];
+        });
+
+        const wsData = [...headerTitle, colHeaders, ...dataRows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [
+          { wch: 8 },
+          { wch: 24 },
+          { wch: 30 },
+          { wch: 26 },
+          { wch: 24 },
+          { wch: 13 },
+          { wch: 12 },
+          { wch: 11 },
+          { wch: 42 },
+          { wch: 18 },
+          { wch: 18 },
+          { wch: 14 },
+          { wch: 18 },
+          { wch: 22 },
+          { wch: 18 },
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `Risikovurdering ${year}`);
+
+        if (format === 'csv') {
+          XLSX.writeFile(wb, `Hvittingsfoss_Alpinklubb_Risikovurdering_${year}.csv`, {
+            bookType: 'csv',
+          });
+          showToast(`Lastet ned CSV for ${year}.`);
+        } else {
+          XLSX.writeFile(wb, `Hvittingsfoss_Alpinklubb_Risikovurdering_${year}.xlsx`);
+          showToast(`Lastet ned Excel-fil for ${year}.`);
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 10. UI Components & Renderers
+      // ------------------------------------------------------------------
+      function renderRiskCell(score) {
+        const meta = getRiskMeta(score);
+        return `
+          <span class="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${meta.bgClass}">
+            <span class="font-mono tabular-nums font-semibold">${escapeHtml(score)}</span>
+            <span aria-hidden="true">·</span>
+            <span>${meta.level}</span>
+          </span>
+        `;
+      }
+
+      function renderLoginScreen() {
+        return `
+          <main class="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
+            <div class="w-full max-w-md bg-white border border-slate-200 rounded-xl p-8">
+              <div class="mb-7">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="h-10 w-10 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0" aria-hidden="true">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 19l6.5-11 4 6.5L16.5 10 21 19H3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900">Hvittingsfoss Alpinklubb</h1>
+                    <p class="text-xs text-slate-500">Årlig og daglig risikovurdering</p>
+                  </div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  Logg inn med din klubbkonto for å se daglig oversikt, gjennomføre årlig risikovurdering og oppdatere tiltak.
+                </p>
+              </div>
+
+              ${
+                state.authError
+                  ? `<div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-800" role="alert">${escapeHtml(
+                      state.authError
+                    )}</div>`
+                  : ''
+              }
+              ${
+                state.authInfo
+                  ? `<div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800" role="status">${escapeHtml(
+                      state.authInfo
+                    )}</div>`
+                  : ''
+              }
+
+              <form id="login-form" class="space-y-4">
+                <div>
+                  <label for="login-email" class="block text-sm font-medium text-slate-700 mb-1.5">
+                    E-postadresse
+                  </label>
+                  <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    required
+                    autocomplete="email"
+                    placeholder="navn@hvittingsfoss.no"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  />
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label for="login-password" class="block text-sm font-medium text-slate-700">
+                      Passord
+                    </label>
+                    <button
+                      type="button"
+                      id="forgot-password-btn"
+                      class="text-xs font-medium text-blue-700 hover:text-blue-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
+                    >
+                      Glemt passord?
+                    </button>
+                  </div>
+                  <input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    required
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  ${state.authSubmitting ? 'disabled' : ''}
+                  class="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                >
+                  ${state.authSubmitting ? 'Logger inn…' : 'Logg inn'}
+                </button>
+              </form>
+
+              <p class="mt-6 pt-5 border-t border-slate-100 text-xs text-slate-500">
+                Tilgang gis kun til autoriserte brukere registrert i klubbens Firebase-prosjekt.
+              </p>
+            </div>
+          </main>
+        `;
+      }
+
+      function renderTopHeader() {
+        const tabs = [
+          { id: 'dashboard', label: 'Daglig oversikt' },
+          { id: 'wizard', label: 'Årlig gjennomgang' },
+          { id: 'framework', label: 'Rammeverk & Import' },
+          { id: 'reporting', label: 'Rapportering' },
+        ];
+
+        return `
+          <header class="print-hidden sticky top-0 z-30 bg-white border-b border-slate-200">
+            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+              <!-- Zone 1: Brand wordmark (single line) -->
+              <a
+                href="#dashboard"
+                data-tab-link="dashboard"
+                class="text-base sm:text-lg font-display font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
+              >
+                Hvittingsfoss Alpinklubb
+              </a>
+
+              <!-- Zone 2: Primary navigation links -->
+              <nav class="hidden md:flex items-center gap-6" aria-label="Hovedmeny">
+                ${tabs
+                  .map((t) => {
+                    const active = state.activeTab === t.id;
+                    return `
+                      <button
+                        type="button"
+                        data-tab-btn="${t.id}"
+                        class="relative py-5 text-sm font-medium whitespace-nowrap shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded ${
+                          active
+                            ? 'text-blue-700'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }"
+                      >
+                        ${escapeHtml(t.label)}
+                        ${
+                          active
+                            ? '<span class="absolute inset-x-0 bottom-0 h-0.5 bg-blue-700"></span>'
+                            : ''
+                        }
+                      </button>
+                    `;
+                  })
+                  .join('')}
+              </nav>
+
+              <!-- Zone 3: Single primary action -->
+              <div class="flex items-center gap-4 shrink-0">
+                <span class="hidden lg:inline text-xs text-slate-500 truncate max-w-[180px]" title="${escapeHtml(
+                  state.user?.email || ''
+                )}">
+                  ${escapeHtml(state.user?.email || '')}
+                </span>
+                <button
+                  type="button"
+                  id="logout-btn"
+                  class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                >
+                  Logg ut
+                </button>
+              </div>
+            </div>
+
+            <!-- Mobile Horizontal Tab Bar -->
+            <div class="md:hidden border-t border-slate-100 bg-white overflow-x-auto custom-scroll">
+              <div class="flex items-center gap-1 px-4 py-2">
+                ${tabs
+                  .map((t) => {
+                    const active = state.activeTab === t.id;
+                    return `
+                      <button
+                        type="button"
+                        data-tab-btn="${t.id}"
+                        class="px-3 py-2 text-xs font-medium rounded-md whitespace-nowrap shrink-0 transition-colors ${
+                          active
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }"
+                      >
+                        ${escapeHtml(t.label)}
+                      </button>
+                    `;
+                  })
+                  .join('')}
+              </div>
+            </div>
+          </header>
+        `;
+      }
+
+      // ------------------------------------------------------------------
+      // Tab 2: DAGLIG OVERSIKT (Dashboard)
+      // ------------------------------------------------------------------
+      function renderDashboardView() {
+        const years = getAvailableYears();
+        const yearAssessments = getAssessmentsForYear(state.selectedYear);
+
+        // Compute KPIs from all assessments for selected year
+        let highCount = 0;
+        let mediumCount = 0;
+        let lowCount = 0;
+        let missingStatusCount = 0;
+
+        yearAssessments.forEach((item) => {
+          const restScore =
+            item.restRisikotall ??
+            computeRisk(item.restSannsynlighet, item.restKonsekvens);
+          const meta = getRiskMeta(restScore);
+          if (meta.key === 'high') highCount++;
+          else if (meta.key === 'medium') mediumCount++;
+          else lowCount++;
+
+          const st = String(item.status ?? '').trim();
+          if (!st || st === 'Ikke startet') {
+            missingStatusCount++;
+          }
+        });
+
+        // Apply search & filters
+        const q = state.searchQuery.trim().toLowerCase();
+        const filtered = yearAssessments.filter((item) => {
+          const restScore =
+            item.restRisikotall ??
+            computeRisk(item.restSannsynlighet, item.restKonsekvens);
+          const meta = getRiskMeta(restScore);
+
+          if (state.riskFilter !== 'all' && meta.key !== state.riskFilter) {
+            return false;
+          }
+
+          const st = String(item.status ?? '').trim();
+          if (state.statusFilter === 'missing') {
+            if (st && st !== 'Ikke startet') return false;
+          } else if (state.statusFilter !== 'all') {
+            if (st !== state.statusFilter) return false;
+          }
+
+          if (q) {
+            const haystack = [
+              item.nr,
+              item.komponentSted,
+              item.farer,
+              item.tiltak,
+              item.ansvarlig,
+              item.status,
+            ]
+              .join(' ')
+              .toLowerCase();
+            if (!haystack.includes(q)) return false;
+          }
+          return true;
+        });
+
+        return `
+          <section class="space-y-6">
+            <!-- Page Heading & Year Selector -->
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Daglig oversikt</h1>
+                <p class="mt-1 text-sm text-slate-600">
+                  Operativ oppfølging av risikopunkter, iverksatte tiltak og status for ${escapeHtml(
+                    state.selectedYear
+                  )}.
+                </p>
+              </div>
+
+              <div class="flex items-center gap-3 shrink-0">
+                <label for="dashboard-year-select" class="text-sm font-medium text-slate-700 whitespace-nowrap">
+                  Årstall:
+                </label>
+                <select
+                  id="dashboard-year-select"
+                  class="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-900 font-mono tabular-nums focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                >
+                  ${years
+                    .map(
+                      (y) =>
+                        `<option value="${y}" ${
+                          Number(state.selectedYear) === y ? 'selected' : ''
+                        }>${y}</option>`
+                    )
+                    .join('')}
+                </select>
+              </div>
+            </div>
+
+            <!-- KPI Strip (4 structured blocks) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="bg-white border border-slate-200 rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-500">Høy restrisiko (16–25)</span>
+                  <span class="text-xs font-medium text-red-700">Kritisk</span>
+                </div>
+                <p class="mt-2 text-3xl font-bold font-mono tabular-nums text-slate-900">${highCount}</p>
+                <p class="mt-1 text-xs text-slate-500">Krever umiddelbar oppmerksomhet</p>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-500">Middels restrisiko (6–15)</span>
+                  <span class="text-xs font-medium text-amber-700">Overvåkes</span>
+                </div>
+                <p class="mt-2 text-3xl font-bold font-mono tabular-nums text-slate-900">${mediumCount}</p>
+                <p class="mt-1 text-xs text-slate-500">Følges opp etter tiltaksplan</p>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-500">Lav restrisiko (1–5)</span>
+                  <span class="text-xs font-medium text-emerald-700">Akseptabel</span>
+                </div>
+                <p class="mt-2 text-3xl font-bold font-mono tabular-nums text-slate-900">${lowCount}</p>
+                <p class="mt-1 text-xs text-slate-500">Innenfor normal drift</p>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-xl p-5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-500">Mangler tiltaksstatus</span>
+                  <span class="text-xs font-medium text-slate-600">Oppfølging</span>
+                </div>
+                <p class="mt-2 text-3xl font-bold font-mono tabular-nums text-slate-900">${missingStatusCount}</p>
+                <p class="mt-1 text-xs text-slate-500">Ikke startet eller uten status</p>
+              </div>
+            </div>
+
+            <!-- Main Data Table Card -->
+            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              <!-- Search & Filter Toolbar -->
+              <div class="p-4 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div class="relative flex-1 max-w-md">
+                  <svg
+                    class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                  <input
+                    id="dashboard-search-input"
+                    type="search"
+                    value="${escapeHtml(state.searchQuery)}"
+                    placeholder="Søk på nr., sted, fare, tiltak eller ansvarlig…"
+                    class="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  />
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5">
+                  <select
+                    id="dashboard-risk-filter"
+                    aria-label="Filtrer på restrisiko"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  >
+                    <option value="all" ${state.riskFilter === 'all' ? 'selected' : ''}>Alle risikonivåer</option>
+                    <option value="high" ${state.riskFilter === 'high' ? 'selected' : ''}>Høy (16–25)</option>
+                    <option value="medium" ${state.riskFilter === 'medium' ? 'selected' : ''}>Middels (6–15)</option>
+                    <option value="low" ${state.riskFilter === 'low' ? 'selected' : ''}>Lav (1–5)</option>
+                  </select>
+
+                  <select
+                    id="dashboard-status-filter"
+                    aria-label="Filtrer på status"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  >
+                    <option value="all" ${state.statusFilter === 'all' ? 'selected' : ''}>Alle statuser</option>
+                    <option value="Ikke startet" ${state.statusFilter === 'Ikke startet' ? 'selected' : ''}>Ikke startet</option>
+                    <option value="Pågår" ${state.statusFilter === 'Pågår' ? 'selected' : ''}>Pågår</option>
+                    <option value="Utført / Kontrollert" ${state.statusFilter === 'Utført / Kontrollert' ? 'selected' : ''}>Utført / Kontrollert</option>
+                    <option value="missing" ${state.statusFilter === 'missing' ? 'selected' : ''}>Mangler status / Ikke startet</option>
+                  </select>
+
+                  <span class="text-xs text-slate-500 tabular-nums pl-1">
+                    Viser ${filtered.length} av ${yearAssessments.length}
+                  </span>
+                </div>
+              </div>
+
+              ${
+                yearAssessments.length === 0
+                  ? `
+                    <div class="p-12 text-center max-w-lg mx-auto">
+                      <h2 class="text-base font-semibold text-slate-900">
+                        Ingen lagrede risikovurderinger for ${escapeHtml(state.selectedYear)}
+                      </h2>
+                      <p class="mt-2 text-sm text-slate-600 leading-relaxed">
+                        ${
+                          state.rammeverk.length === 0
+                            ? 'Start med å importere Excel-malen eller legge inn sjekkpunkter i rammeverket, og gjennomfør deretter den årlige gjennomgangen.'
+                            : 'Rammeverket er klart. Gå til Årlig gjennomgang for å vurdere punktene for dette året.'
+                        }
+                      </p>
+                      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                        ${
+                          state.rammeverk.length === 0
+                            ? `<button type="button" data-tab-btn="framework" class="px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">Importer rammeverk fra Excel</button>`
+                            : `<button type="button" id="start-wizard-for-year-btn" class="px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">Start årlig gjennomgang for ${escapeHtml(
+                                state.selectedYear
+                              )}</button>`
+                        }
+                      </div>
+                    </div>
+                  `
+                  : filtered.length === 0
+                  ? `
+                    <div class="p-10 text-center">
+                      <p class="text-sm font-medium text-slate-900">Ingen punkter matcher søket eller filteret.</p>
+                      <button
+                        type="button"
+                        id="reset-dashboard-filters-btn"
+                        class="mt-3 text-xs font-semibold text-blue-700 hover:underline"
+                      >
+                        Nullstill søk og filtre
+                      </button>
+                    </div>
+                  `
+                  : `
+                    <div class="overflow-x-auto custom-scroll">
+                      <table class="w-full text-left border-collapse">
+                        <thead>
+                          <tr class="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-600">
+                            <th class="py-3 px-4 whitespace-nowrap">Nr.</th>
+                            <th class="py-3 px-4 min-w-[170px]">Komponent/Sted</th>
+                            <th class="py-3 px-4 min-w-[210px]">Farer</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Innledende risiko</th>
+                            <th class="py-3 px-4 min-w-[240px]">Iverksatte tiltak</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Restrisiko</th>
+                            <th class="py-3 px-4 min-w-[130px]">Ansvarlig</th>
+                            <th class="py-3 px-4 min-w-[180px]">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                          ${filtered
+                            .map((row) => {
+                              const initScore =
+                                row.innledendeRisikotall ??
+                                computeRisk(
+                                  row.innledendeSannsynlighet,
+                                  row.innledendeKonsekvens
+                                );
+                              const restScore =
+                                row.restRisikotall ??
+                                computeRisk(row.restSannsynlighet, row.restKonsekvens);
+                              const rowStatus = row.status || 'Ikke startet';
+                              return `
+                                <tr
+                                  data-edit-assessment-row="${escapeHtml(row.id)}"
+                                  class="hover:bg-slate-50/90 cursor-pointer transition-colors align-top"
+                                  title="Klikk for å redigere tiltak, ansvarlig eller risikovurdering"
+                                >
+                                  <td class="py-3 px-4 font-mono tabular-nums text-xs font-semibold text-slate-700 whitespace-nowrap">
+                                    ${escapeHtml(row.nr)}
+                                  </td>
+                                  <td class="py-3 px-4 font-medium text-slate-900">
+                                    ${escapeHtml(row.komponentSted || '–')}
+                                  </td>
+                                  <td class="py-3 px-4 text-slate-700">
+                                    <div class="line-clamp-3">${escapeHtml(row.farer || '–')}</div>
+                                  </td>
+                                  <td class="py-3 px-4 whitespace-nowrap">
+                                    ${renderRiskCell(initScore)}
+                                  </td>
+                                  <td class="py-3 px-4 text-slate-700">
+                                    <div class="line-clamp-3">${escapeHtml(row.tiltak || 'Ikke registrert')}</div>
+                                  </td>
+                                  <td class="py-3 px-4 whitespace-nowrap">
+                                    ${renderRiskCell(restScore)}
+                                  </td>
+                                  <td class="py-3 px-4 text-slate-700">
+                                    ${escapeHtml(row.ansvarlig || 'Ikke tildelt')}
+                                  </td>
+                                  <td class="py-3 px-4" data-stop-row-click="true">
+                                    <select
+                                      data-status-select="${escapeHtml(row.id)}"
+                                      aria-label="Status for punkt ${escapeHtml(row.nr)}"
+                                      class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                                    >
+                                      ${STATUS_OPTIONS.map(
+                                        (opt) =>
+                                          `<option value="${escapeHtml(opt)}" ${
+                                            rowStatus === opt ? 'selected' : ''
+                                          }>${escapeHtml(opt)}</option>`
+                                      ).join('')}
+                                    </select>
+                                  </td>
+                                </tr>
+                              `;
+                            })
+                            .join('')}
+                        </tbody>
+                      </table>
+                    </div>
+                  `
+              }
+            </div>
+          </section>
+        `;
+      }
+
+      // ------------------------------------------------------------------
+      // Tab 3: ÅRLIG GJENNOMGANG (Veiviser)
+      // ------------------------------------------------------------------
+      function renderRatingPicker(prefix, currentVal, labelsMap) {
+        const val = clampRating(currentVal, 1);
+        return `
+          <div class="grid grid-cols-5 gap-1.5" role="radiogroup">
+            ${[1, 2, 3, 4, 5]
+              .map((n) => {
+                const active = val === n;
+                return `
+                  <button
+                    type="button"
+                    data-rating-field="${prefix}"
+                    data-rating-value="${n}"
+                    title="${escapeHtml(labelsMap[n])}"
+                    class="py-2 px-1 rounded-lg border text-sm font-mono tabular-nums font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                      active
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }"
+                  >
+                    ${n}
+                  </button>
+                `;
+              })
+              .join('')}
+          </div>
+          <p class="mt-1.5 text-xs text-slate-500">${escapeHtml(labelsMap[val])}</p>
+        `;
+      }
+
+      function renderWizardView() {
+        const years = getAvailableYears();
+        const items = state.rammeverk;
+        const yearAssessments = getAssessmentsForYear(state.wizardYear);
+        const assessedMap = new Map();
+        yearAssessments.forEach((a) => {
+          if (a.rammeverkId) assessedMap.set(a.rammeverkId, a);
+          if (a.nr) assessedMap.set(`nr:${String(a.nr).trim()}`, a);
+        });
+
+        const completedCount = items.filter(
+          (item) =>
+            assessedMap.has(item.id) ||
+            assessedMap.has(`nr:${String(item.nr ?? '').trim()}`)
+        ).length;
+
+        const prevYear = Number(state.wizardYear) - 1;
+        const prevYearCount = getAssessmentsForYear(prevYear).length;
+
+        if (items.length === 0) {
+          return `
+            <section class="space-y-6">
+              <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Årlig gjennomgang</h1>
+                <p class="mt-1 text-sm text-slate-600">Systematisk gjennomgang av alle punkter fra rammeverket.</p>
+              </div>
+              <div class="bg-white border border-slate-200 rounded-xl p-12 text-center max-w-xl mx-auto">
+                <h2 class="text-base font-semibold text-slate-900">Rammeverket er tomt</h2>
+                <p class="mt-2 text-sm text-slate-600">
+                  For å gjennomføre en årlig risikovurdering må det først finnes sjekkpunkter i samlingen «rammeverk». Importer klubbens Excel-fil eller legg til punkter manuelt.
+                </p>
+                <button
+                  type="button"
+                  data-tab-btn="framework"
+                  class="mt-5 px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  Gå til Rammeverk & Import
+                </button>
+              </div>
+            </section>
+          `;
+        }
+
+        const activeItem = items[state.wizardSelectedIndex] || items[0];
+        const draft = state.wizardDraft || buildWizardDraft(activeItem, state.wizardYear);
+        const initScore = computeRisk(
+          draft.innledendeSannsynlighet,
+          draft.innledendeKonsekvens
+        );
+        const restScore = computeRisk(draft.restSannsynlighet, draft.restKonsekvens);
+        const isLast = state.wizardSelectedIndex >= items.length - 1;
+        const isFirst = state.wizardSelectedIndex <= 0;
+
+        return `
+          <section class="space-y-6">
+            <!-- Header & Year Picker -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Årlig gjennomgang</h1>
+                <p class="mt-1 text-sm text-slate-600">
+                  Gå gjennom punktene steg for steg og lagre innledende risiko, tiltak og restrisiko for ${escapeHtml(
+                    state.wizardYear
+                  )}.
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="text-xs font-medium text-slate-600 tabular-nums">
+                  Fremdrift: <strong class="text-slate-900">${completedCount}</strong> av <strong class="text-slate-900">${items.length}</strong> vurdert
+                </span>
+
+                <div class="flex items-center gap-2">
+                  <label for="wizard-year-select" class="text-sm font-medium text-slate-700">År:</label>
+                  <select
+                    id="wizard-year-select"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono tabular-nums font-medium text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  >
+                    ${years
+                      .map(
+                        (y) =>
+                          `<option value="${y}" ${
+                            Number(state.wizardYear) === y ? 'selected' : ''
+                          }>${y}</option>`
+                      )
+                      .join('')}
+                  </select>
+                </div>
+
+                ${
+                  prevYearCount > 0
+                    ? `
+                      <button
+                        type="button"
+                        id="wizard-copy-prev-btn"
+                        class="px-3.5 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+                        title="Hent verdier for dette punktet fra ${prevYear}"
+                      >
+                        Hent dette punktet fra ${prevYear}
+                      </button>
+                    `
+                    : ''
+                }
+              </div>
+            </div>
+
+            <!-- 2-Column Wizard Workspace -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <!-- Left Sidebar: Checklist Navigation -->
+              <aside class="lg:col-span-4 xl:col-span-3 bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-700">Sjekkpunkter (${items.length})</span>
+                  <span class="text-xs text-slate-500 tabular-nums">${Math.round(
+                    (completedCount / items.length) * 100
+                  )}%</span>
+                </div>
+                <div class="max-h-[640px] overflow-y-auto custom-scroll divide-y divide-slate-100">
+                  ${items
+                    .map((item, idx) => {
+                      const saved =
+                        assessedMap.get(item.id) ||
+                        assessedMap.get(`nr:${String(item.nr ?? '').trim()}`);
+                      const isActive = idx === state.wizardSelectedIndex;
+                      const savedScore = saved
+                        ? saved.restRisikotall ??
+                          computeRisk(saved.restSannsynlighet, saved.restKonsekvens)
+                        : null;
+                      const meta = savedScore ? getRiskMeta(savedScore) : null;
+
+                      return `
+                        <button
+                          type="button"
+                          data-wizard-select-index="${idx}"
+                          class="w-full text-left px-4 py-3 flex items-start justify-between gap-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600 ${
+                            isActive ? 'bg-blue-50/70' : 'hover:bg-slate-50'
+                          }"
+                        >
+                          <div class="min-w-0">
+                            <div class="flex items-center gap-2 text-xs">
+                              <span class="font-mono tabular-nums font-semibold ${
+                                isActive ? 'text-blue-800' : 'text-slate-600'
+                              }">${escapeHtml(item.nr)}</span>
+                              <span aria-hidden="true" class="text-slate-300">·</span>
+                              <span class="truncate font-medium ${
+                                isActive ? 'text-blue-900' : 'text-slate-900'
+                              }">${escapeHtml(item.komponentSted || 'Uten navn')}</span>
+                            </div>
+                            <p class="mt-0.5 text-xs text-slate-500 truncate">${escapeHtml(
+                              item.farer || ''
+                            )}</p>
+                          </div>
+                          <div class="shrink-0 pt-0.5">
+                            ${
+                              meta
+                                ? `<span class="inline-block rounded border px-1.5 py-0.5 text-[11px] font-mono tabular-nums font-semibold ${meta.bgClass}">${savedScore}</span>`
+                                : `<span class="text-[11px] text-slate-400">Ikke vurdert</span>`
+                            }
+                          </div>
+                        </button>
+                      `;
+                    })
+                    .join('')}
+                </div>
+              </aside>
+
+              <!-- Right Main Form -->
+              <div class="lg:col-span-8 xl:col-span-9 bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+                <!-- Framework Base Details -->
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-slate-200">
+                  <div>
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                      <span class="font-mono tabular-nums font-semibold text-slate-700">Punkt ${escapeHtml(
+                        draft.nr
+                      )}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>Steg ${state.wizardSelectedIndex + 1} av ${items.length}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>${draft.isSaved ? 'Lagret for ' + escapeHtml(state.wizardYear) : 'Ikke vurdert for ' + escapeHtml(state.wizardYear)}</span>
+                    </div>
+                    <h2 class="mt-1.5 text-xl font-bold text-slate-900">
+                      ${escapeHtml(draft.komponentSted || 'Komponent / Sted')}
+                    </h2>
+                  </div>
+                </div>
+
+                <!-- Master Info Grid (Clean surface, no nested card borders) -->
+                <div class="bg-slate-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span class="block text-xs font-medium text-slate-500 mb-1">Farer</span>
+                    <p class="text-slate-900 leading-relaxed">${escapeHtml(draft.farer || 'Ikke angitt')}</p>
+                  </div>
+                  <div>
+                    <span class="block text-xs font-medium text-slate-500 mb-1">Mulige årsaker</span>
+                    <p class="text-slate-800 leading-relaxed">${escapeHtml(
+                      draft.muligeArsaker || 'Ikke angitt'
+                    )}</p>
+                  </div>
+                  <div>
+                    <span class="block text-xs font-medium text-slate-500 mb-1">Type skade/hendelse</span>
+                    <p class="text-slate-800 leading-relaxed">${escapeHtml(
+                      draft.typeSkade || 'Ikke angitt'
+                    )}</p>
+                  </div>
+                </div>
+
+                <!-- Innledende Risiko -->
+                <div class="space-y-4">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 class="text-sm font-semibold text-slate-900">1. Innledende risiko (før nye tiltak)</h3>
+                      <p class="text-xs text-slate-500">Vurder sannsynlighet og konsekvens uten ekstra tiltak.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-slate-500">Innledende risikotall:</span>
+                      ${renderRiskCell(initScore)}
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-700 mb-1.5">
+                        Innledende sannsynlighet (1–5)
+                      </label>
+                      ${renderRatingPicker(
+                        'innledendeSannsynlighet',
+                        draft.innledendeSannsynlighet,
+                        PROBABILITY_LABELS
+                      )}
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-700 mb-1.5">
+                        Innledende konsekvens (1–5)
+                      </label>
+                      ${renderRatingPicker(
+                        'innledendeKonsekvens',
+                        draft.innledendeKonsekvens,
+                        CONSEQUENCE_LABELS
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Iverksatte tiltak -->
+                <div class="pt-4 border-t border-slate-100 space-y-2">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <label for="wizard-tiltak-input" class="block text-sm font-semibold text-slate-900">
+                      2. Iverksatte tiltak for eliminering av risiko
+                    </label>
+                    <button
+                      type="button"
+                      id="wizard-ai-suggest-btn"
+                      ${state.aiSuggesting ? 'disabled' : ''}
+                      class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-60 transition-colors"
+                    >
+                      ${state.aiSuggesting ? 'Genererer forslag…' : 'Foreslå tiltak med KI'}
+                    </button>
+                  </div>
+                  <textarea
+                    id="wizard-tiltak-input"
+                    rows="4"
+                    placeholder="Beskriv konkrete fysiske, tekniske eller organisatoriske tiltak…"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  >${escapeHtml(draft.tiltak)}</textarea>
+                </div>
+
+                <!-- Restrisiko -->
+                <div class="pt-4 border-t border-slate-100 space-y-4">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 class="text-sm font-semibold text-slate-900">3. Restrisiko (etter tiltak)</h3>
+                      <p class="text-xs text-slate-500">Vurder gjenværende risiko når iverksatte tiltak er på plass.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-slate-500">Restrisikotall:</span>
+                      ${renderRiskCell(restScore)}
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-700 mb-1.5">
+                        Restrisiko sannsynlighet (1–5)
+                      </label>
+                      ${renderRatingPicker(
+                        'restSannsynlighet',
+                        draft.restSannsynlighet,
+                        PROBABILITY_LABELS
+                      )}
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-700 mb-1.5">
+                        Restrisiko konsekvens (1–5)
+                      </label>
+                      ${renderRatingPicker(
+                        'restKonsekvens',
+                        draft.restKonsekvens,
+                        CONSEQUENCE_LABELS
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Ansvarlig & Status -->
+                <div class="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label for="wizard-ansvarlig-input" class="block text-xs font-medium text-slate-700 mb-1.5">
+                      Ansvarlig for oppfyllelse av krav
+                    </label>
+                    <input
+                      id="wizard-ansvarlig-input"
+                      type="text"
+                      list="role-suggestions-list"
+                      value="${escapeHtml(draft.ansvarlig)}"
+                      placeholder="F.eks. Heisfører, Tråkkemaskinfører, Driftsleder"
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label for="wizard-status-select" class="block text-xs font-medium text-slate-700 mb-1.5">
+                      Tiltaksstatus
+                    </label>
+                    <select
+                      id="wizard-status-select"
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                    >
+                      ${STATUS_OPTIONS.map(
+                        (opt) =>
+                          `<option value="${escapeHtml(opt)}" ${
+                            draft.status === opt ? 'selected' : ''
+                          }>${escapeHtml(opt)}</option>`
+                      ).join('')}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Actions Footer -->
+                <div class="pt-5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    id="wizard-prev-btn"
+                    ${isFirst ? 'disabled' : ''}
+                    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                  >
+                    Forrige punkt
+                  </button>
+
+                  <div class="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      id="wizard-save-only-btn"
+                      ${state.wizardSaving ? 'disabled' : ''}
+                      class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-60 transition-colors"
+                    >
+                      Lagre punkt
+                    </button>
+                    <button
+                      type="button"
+                      id="wizard-save-next-btn"
+                      ${state.wizardSaving ? 'disabled' : ''}
+                      class="px-5 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 disabled:opacity-60 transition-colors"
+                    >
+                      ${
+                        state.wizardSaving
+                          ? 'Lagrer…'
+                          : isLast
+                          ? 'Lagre og fullfør'
+                          : 'Lagre og gå til neste punkt'
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
+      // ------------------------------------------------------------------
+      // Tab 4: RAMMEVERK & EXCEL-IMPORT
+      // ------------------------------------------------------------------
+      function renderFrameworkView() {
+        const q = state.frameworkSearch.trim().toLowerCase();
+        const filtered = state.rammeverk.filter((item) => {
+          if (!q) return true;
+          return [
+            item.nr,
+            item.komponentSted,
+            item.farer,
+            item.muligeArsaker,
+            item.typeSkade,
+            item.standardTiltak,
+          ]
+            .join(' ')
+            .toLowerCase()
+            .includes(q);
+        });
+
+        return `
+          <section class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Rammeverk & Excel-import</h1>
+                <p class="mt-1 text-sm text-slate-600">
+                  Grunnsjekkliste i Firestore («rammeverk») med automatisk import fra klubbens Excel-mal.
+                </p>
+              </div>
+              <div class="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  id="new-framework-item-btn"
+                  class="px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap"
+                >
+                  Nytt punkt i rammeverk
+                </button>
+              </div>
+            </div>
+
+            <!-- Excel / CSV Import Box -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-base font-semibold text-slate-900">Importer Excel / CSV</h2>
+                  <p class="mt-1 text-sm text-slate-600">
+                    Systemet hopper automatisk over informasjons- og matriseradene øverst (rad 1–11) og finner raden som starter med <code class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">Nr.</code>.
+                  </p>
+                </div>
+
+                <label
+                  for="excel-file-input"
+                  class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                >
+                  Velg Excel- eller CSV-fil
+                  <input
+                    id="excel-file-input"
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    class="sr-only"
+                  />
+                </label>
+              </div>
+
+              ${
+                state.importError
+                  ? `<div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">${escapeHtml(
+                      state.importError
+                    )}</div>`
+                  : ''
+              }
+
+              ${
+                state.importPreview
+                  ? `
+                    <div class="pt-4 border-t border-slate-200 space-y-4">
+                      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div class="text-sm text-slate-700">
+                          <span class="font-semibold text-slate-900">${escapeHtml(
+                            state.importPreview.fileName
+                          )}</span>
+                          <span class="mx-2 text-slate-300">·</span>
+                          <span>Ark: <strong>${escapeHtml(
+                            state.importPreview.sheetName
+                          )}</strong></span>
+                          <span class="mx-2 text-slate-300">·</span>
+                          <span>Overskrifter funnet på <strong>rad ${
+                            state.importPreview.headerRowNumber
+                          }</strong></span>
+                          <span class="mx-2 text-slate-300">·</span>
+                          <span class="font-mono tabular-nums font-semibold">${
+                            state.importPreview.rows.length
+                          } punkter klare</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          id="cancel-import-btn"
+                          class="text-xs font-medium text-slate-500 hover:text-slate-900 self-start md:self-auto"
+                        >
+                          Avbryt import
+                        </button>
+                      </div>
+
+                      ${
+                        state.importPreview.sheetNames?.length > 1
+                          ? `
+                            <div class="flex items-center gap-2 text-xs">
+                              <label for="import-sheet-select" class="font-medium text-slate-600">Velg regneark:</label>
+                              <select id="import-sheet-select" class="rounded border border-slate-300 bg-white px-2.5 py-1 text-slate-800">
+                                ${state.importPreview.sheetNames
+                                  .map(
+                                    (name) =>
+                                      `<option value="${escapeHtml(name)}" ${
+                                        name === state.importPreview.sheetName ? 'selected' : ''
+                                      }>${escapeHtml(name)}</option>`
+                                  )
+                                  .join('')}
+                              </select>
+                            </div>
+                          `
+                          : ''
+                      }
+
+                      <!-- Preview table (first 8 rows) -->
+                      <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-72 custom-scroll">
+                        <table class="w-full text-left border-collapse text-xs">
+                          <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 sticky top-0">
+                            <tr>
+                              <th class="py-2 px-3">Nr.</th>
+                              <th class="py-2 px-3">Komponent/Sted</th>
+                              <th class="py-2 px-3">Farer</th>
+                              <th class="py-2 px-3">Innledende</th>
+                              <th class="py-2 px-3">Tiltak</th>
+                              <th class="py-2 px-3">Restrisiko</th>
+                              <th class="py-2 px-3">Ansvarlig</th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-100">
+                            ${state.importPreview.rows
+                              .slice(0, 10)
+                              .map((r) => {
+                                const initR = computeRisk(
+                                  r.innledendeSannsynlighet,
+                                  r.innledendeKonsekvens
+                                );
+                                const restR = computeRisk(
+                                  r.restSannsynlighet,
+                                  r.restKonsekvens
+                                );
+                                return `
+                                  <tr>
+                                    <td class="py-2 px-3 font-mono tabular-nums font-semibold">${escapeHtml(
+                                      r.nr
+                                    )}</td>
+                                    <td class="py-2 px-3 font-medium text-slate-900">${escapeHtml(
+                                      r.komponentSted
+                                    )}</td>
+                                    <td class="py-2 px-3 text-slate-700 max-w-[200px] truncate">${escapeHtml(
+                                      r.farer
+                                    )}</td>
+                                    <td class="py-2 px-3 font-mono tabular-nums">${initR}</td>
+                                    <td class="py-2 px-3 text-slate-700 max-w-[220px] truncate">${escapeHtml(
+                                      r.tiltak
+                                    )}</td>
+                                    <td class="py-2 px-3 font-mono tabular-nums">${restR}</td>
+                                    <td class="py-2 px-3 text-slate-700">${escapeHtml(
+                                      r.ansvarlig
+                                    )}</td>
+                                  </tr>
+                                `;
+                              })
+                              .join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                      ${
+                        state.importPreview.rows.length > 10
+                          ? `<p class="text-xs text-slate-500">Viser de første 10 av totalt ${state.importPreview.rows.length} rader.</p>`
+                          : ''
+                      }
+
+                      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                        <div class="flex flex-wrap items-center gap-3">
+                          <label class="inline-flex items-center gap-2 text-sm text-slate-800 cursor-pointer">
+                            <input
+                              id="import-history-checkbox"
+                              type="checkbox"
+                              ${state.importIncludeHistory ? 'checked' : ''}
+                              class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                            />
+                            <span>Importer også tall og tiltak som historikk for år:</span>
+                          </label>
+                          <input
+                            id="import-history-year"
+                            type="number"
+                            min="2000"
+                            max="2100"
+                            value="${escapeHtml(state.importHistoryYear)}"
+                            ${state.importIncludeHistory ? '' : 'disabled'}
+                            class="w-24 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-mono tabular-nums text-slate-900 disabled:opacity-50"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          id="commit-import-btn"
+                          ${state.importing ? 'disabled' : ''}
+                          class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-700 rounded-lg hover:bg-blue-800 disabled:opacity-60 transition-colors whitespace-nowrap"
+                        >
+                          ${
+                            state.importing
+                              ? 'Lagrer i Firestore…'
+                              : `Lagre ${state.importPreview.rows.length} punkter til Firestore`
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  `
+                  : ''
+              }
+            </div>
+
+            <!-- Framework Checklist Table -->
+            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="relative flex-1 max-w-md">
+                  <svg
+                    class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                  </svg>
+                  <input
+                    id="framework-search-input"
+                    type="search"
+                    value="${escapeHtml(state.frameworkSearch)}"
+                    placeholder="Søk i grunnsjekklisten…"
+                    class="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  />
+                </div>
+                <span class="text-xs text-slate-500 tabular-nums">
+                  ${filtered.length} av ${state.rammeverk.length} punkter i rammeverket
+                </span>
+              </div>
+
+              ${
+                state.rammeverk.length === 0
+                  ? `
+                    <div class="p-12 text-center max-w-md mx-auto">
+                      <p class="text-sm font-semibold text-slate-900">Ingen punkter i rammeverket ennå</p>
+                      <p class="mt-1.5 text-sm text-slate-600">
+                        Last opp klubbens Excel-fil ovenfor eller opprett et nytt punkt manuelt.
+                      </p>
+                    </div>
+                  `
+                  : `
+                    <div class="overflow-x-auto custom-scroll">
+                      <table class="w-full text-left border-collapse">
+                        <thead>
+                          <tr class="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-600">
+                            <th class="py-3 px-4 whitespace-nowrap">Nr.</th>
+                            <th class="py-3 px-4 min-w-[160px]">Komponent/Sted</th>
+                            <th class="py-3 px-4 min-w-[200px]">Farer</th>
+                            <th class="py-3 px-4 min-w-[180px]">Mulige årsaker</th>
+                            <th class="py-3 px-4 min-w-[160px]">Type skade/hendelse</th>
+                            <th class="py-3 px-4 min-w-[220px]">Standardtiltak</th>
+                            <th class="py-3 px-4 text-right whitespace-nowrap">Handlinger</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                          ${filtered
+                            .map(
+                              (item) => `
+                                <tr class="hover:bg-slate-50/80 align-top">
+                                  <td class="py-3 px-4 font-mono tabular-nums text-xs font-semibold text-slate-700 whitespace-nowrap">
+                                    ${escapeHtml(item.nr)}
+                                  </td>
+                                  <td class="py-3 px-4 font-medium text-slate-900">
+                                    ${escapeHtml(item.komponentSted || '–')}
+                                  </td>
+                                  <td class="py-3 px-4 text-slate-700">
+                                    ${escapeHtml(item.farer || '–')}
+                                  </td>
+                                  <td class="py-3 px-4 text-slate-600">
+                                    ${escapeHtml(item.muligeArsaker || '–')}
+                                  </td>
+                                  <td class="py-3 px-4 text-slate-600">
+                                    ${escapeHtml(item.typeSkade || '–')}
+                                  </td>
+                                  <td class="py-3 px-4 text-slate-600">
+                                    <div class="line-clamp-3">${escapeHtml(
+                                      item.standardTiltak || '–'
+                                    )}</div>
+                                  </td>
+                                  <td class="py-3 px-4 text-right whitespace-nowrap space-x-2">
+                                    <button
+                                      type="button"
+                                      data-edit-framework="${escapeHtml(item.id)}"
+                                      class="text-xs font-semibold text-blue-700 hover:underline"
+                                    >
+                                      Rediger
+                                    </button>
+                                    <button
+                                      type="button"
+                                      data-delete-framework="${escapeHtml(item.id)}"
+                                      class="text-xs font-medium text-red-700 hover:underline"
+                                    >
+                                      Slett
+                                    </button>
+                                  </td>
+                                </tr>
+                              `
+                            )
+                            .join('')}
+                        </tbody>
+                      </table>
+                    </div>
+                  `
+              }
+            </div>
+          </section>
+        `;
+      }
+
+      // ------------------------------------------------------------------
+      // Tab 5: RAPPORTERING & EKSPORT
+      // ------------------------------------------------------------------
+      function renderMatrixLegendGrid() {
+        // 5x5 grid: Sannsynlighet (5 down to 1) x Konsekvens (1 to 5)
+        const rows = [5, 4, 3, 2, 1];
+        const cols = [1, 2, 3, 4, 5];
+
+        return `
+          <div class="overflow-x-auto">
+            <table class="border-collapse text-center text-xs font-mono tabular-nums">
+              <thead>
+                <tr>
+                  <th class="p-1.5 text-slate-500 font-sans font-medium text-left">S \\ K</th>
+                  ${cols
+                    .map(
+                      (c) =>
+                        `<th class="p-1.5 w-10 text-slate-600 font-semibold border border-slate-200 bg-slate-50">${c}</th>`
+                    )
+                    .join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${rows
+                  .map(
+                    (s) => `
+                      <tr>
+                        <th class="p-1.5 text-slate-600 font-semibold border border-slate-200 bg-slate-50 text-center w-10">${s}</th>
+                        ${cols
+                          .map((k) => {
+                            const val = s * k;
+                            const meta = getRiskMeta(val);
+                            return `<td class="p-1.5 w-10 font-semibold border ${meta.bgClass}">${val}</td>`;
+                          })
+                          .join('')}
+                      </tr>
+                    `
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderReportingView() {
+        const years = getAvailableYears();
+        const rows = getAssessmentsForYear(state.reportYear);
+
+        let highCount = 0;
+        let mediumCount = 0;
+        let lowCount = 0;
+        let doneCount = 0;
+
+        rows.forEach((r) => {
+          const rest = r.restRisikotall ?? computeRisk(r.restSannsynlighet, r.restKonsekvens);
+          const meta = getRiskMeta(rest);
+          if (meta.key === 'high') highCount++;
+          else if (meta.key === 'medium') mediumCount++;
+          else lowCount++;
+          if (r.status === 'Utført / Kontrollert') doneCount++;
+        });
+
+        const todayFormatted = new Intl.DateTimeFormat('nb-NO', {
+          dateStyle: 'long',
+        }).format(new Date());
+
+        return `
+          <section class="space-y-6">
+            <!-- Controls Bar (Hidden in Print) -->
+            <div class="print-hidden flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+              <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Rapportering & Eksport</h1>
+                <p class="mt-1 text-sm text-slate-600">
+                  Last ned komplett risikoanalyse i Excel/CSV eller skriv ut offisiell årsrapport som PDF.
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                  <label for="report-year-select" class="text-sm font-medium text-slate-700">Årstall:</label>
+                  <select
+                    id="report-year-select"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono tabular-nums font-medium text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                  >
+                    ${years
+                      .map(
+                        (y) =>
+                          `<option value="${y}" ${
+                            Number(state.reportYear) === y ? 'selected' : ''
+                          }>${y}</option>`
+                      )
+                      .join('')}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  id="export-xlsx-btn"
+                  class="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+                >
+                  Eksporter til Excel (.xlsx)
+                </button>
+                <button
+                  type="button"
+                  id="export-csv-btn"
+                  class="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap"
+                >
+                  Eksporter CSV
+                </button>
+                <button
+                  type="button"
+                  id="print-report-btn"
+                  class="px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap"
+                >
+                  Skriv ut / Lagre årsrapport (PDF)
+                </button>
+              </div>
+            </div>
+
+            <!-- Printable Report Sheet -->
+            <div class="print-container bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-6">
+              <!-- Report Header -->
+              <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-6 border-b border-slate-200">
+                <div>
+                  <p class="text-xs font-medium text-slate-500">Årsrapport · Internkontroll og sikkerhet</p>
+                  <h2 class="mt-1 text-2xl font-bold text-slate-900">
+                    Hvittingsfoss Alpinklubb – Risikovurdering ${escapeHtml(state.reportYear)}
+                  </h2>
+                  <p class="mt-1 text-sm text-slate-600">
+                    Dato: ${escapeHtml(todayFormatted)} · Utarbeidet av: ${escapeHtml(
+                      state.user?.email || 'Alpinklubben'
+                    )}
+                  </p>
+                </div>
+
+                <!-- Summary Counts -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div class="border border-slate-200 rounded-lg px-3.5 py-2">
+                    <span class="block text-[11px] text-slate-500">Totalt</span>
+                    <span class="font-mono tabular-nums text-lg font-bold text-slate-900">${rows.length}</span>
+                  </div>
+                  <div class="border border-red-200 bg-red-50 rounded-lg px-3.5 py-2">
+                    <span class="block text-[11px] text-red-800">Høy (16–25)</span>
+                    <span class="font-mono tabular-nums text-lg font-bold text-red-900">${highCount}</span>
+                  </div>
+                  <div class="border border-amber-200 bg-amber-50 rounded-lg px-3.5 py-2">
+                    <span class="block text-[11px] text-amber-800">Middels (6–15)</span>
+                    <span class="font-mono tabular-nums text-lg font-bold text-amber-900">${mediumCount}</span>
+                  </div>
+                  <div class="border border-emerald-200 bg-emerald-50 rounded-lg px-3.5 py-2">
+                    <span class="block text-[11px] text-emerald-800">Lav (1–5)</span>
+                    <span class="font-mono tabular-nums text-lg font-bold text-emerald-900">${lowCount}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Risk Matrix Explanation -->
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center pb-6 border-b border-slate-200">
+                <div class="lg:col-span-7 space-y-2 text-sm text-slate-700">
+                  <h3 class="text-sm font-semibold text-slate-900">Risikomatrise og vurderingskriterier</h3>
+                  <p>
+                    Risikotall beregnes som <strong>Sannsynlighet (1–5) × Konsekvens (1–5)</strong>. Alle punkter vurderes først innledende og deretter som restrisiko etter iverksatte tiltak.
+                  </p>
+                  <div class="flex flex-wrap items-center gap-4 pt-1 text-xs">
+                    <span class="inline-flex items-center gap-1.5">
+                      <span class="h-3 w-3 rounded-sm bg-emerald-600 inline-block"></span>
+                      <span><strong>1–5 Lav risiko:</strong> Akseptabel, følges med rutinemessig drift.</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5">
+                      <span class="h-3 w-3 rounded-sm bg-amber-500 inline-block"></span>
+                      <span><strong>6–15 Middels risiko:</strong> Krever planlagte tiltak og oppfølging.</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5">
+                      <span class="h-3 w-3 rounded-sm bg-red-600 inline-block"></span>
+                      <span><strong>16–25 Høy risiko:</strong> Uakseptabel, krever umiddelbare tiltak.</span>
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-500 pt-1">
+                    Fullførte / kontrollerte tiltak for ${escapeHtml(state.reportYear)}: <strong class="text-slate-800 tabular-nums">${doneCount} av ${rows.length}</strong>.
+                  </p>
+                </div>
+
+                <div class="lg:col-span-5 flex lg:justify-end">
+                  ${renderMatrixLegendGrid()}
+                </div>
+              </div>
+
+              <!-- Full Report Table -->
+              ${
+                rows.length === 0
+                  ? `
+                    <div class="py-10 text-center text-sm text-slate-600">
+                      Ingen vurderinger registrert for ${escapeHtml(state.reportYear)}.
+                    </div>
+                  `
+                  : `
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr class="border-b-2 border-slate-300 bg-slate-50 text-slate-700 font-semibold">
+                            <th class="py-2.5 px-2.5 whitespace-nowrap">Nr.</th>
+                            <th class="py-2.5 px-2.5">Komponent/Sted</th>
+                            <th class="py-2.5 px-2.5">Farer</th>
+                            <th class="py-2.5 px-2.5 whitespace-nowrap">Innledende</th>
+                            <th class="py-2.5 px-2.5">Iverksatte tiltak</th>
+                            <th class="py-2.5 px-2.5 whitespace-nowrap">Restrisiko</th>
+                            <th class="py-2.5 px-2.5">Ansvarlig</th>
+                            <th class="py-2.5 px-2.5 whitespace-nowrap">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                          ${rows
+                            .map((r) => {
+                              const initScore =
+                                r.innledendeRisikotall ??
+                                computeRisk(r.innledendeSannsynlighet, r.innledendeKonsekvens);
+                              const restScore =
+                                r.restRisikotall ??
+                                computeRisk(r.restSannsynlighet, r.restKonsekvens);
+                              return `
+                                <tr class="align-top">
+                                  <td class="py-2.5 px-2.5 font-mono tabular-nums font-semibold text-slate-800 whitespace-nowrap">
+                                    ${escapeHtml(r.nr)}
+                                  </td>
+                                  <td class="py-2.5 px-2.5 font-medium text-slate-900">
+                                    ${escapeHtml(r.komponentSted || '–')}
+                                  </td>
+                                  <td class="py-2.5 px-2.5 text-slate-700">
+                                    ${escapeHtml(r.farer || '–')}
+                                  </td>
+                                  <td class="py-2.5 px-2.5 whitespace-nowrap">
+                                    ${renderRiskCell(initScore)}
+                                  </td>
+                                  <td class="py-2.5 px-2.5 text-slate-700">
+                                    ${escapeHtml(r.tiltak || '–')}
+                                  </td>
+                                  <td class="py-2.5 px-2.5 whitespace-nowrap">
+                                    ${renderRiskCell(restScore)}
+                                  </td>
+                                  <td class="py-2.5 px-2.5 text-slate-700">
+                                    ${escapeHtml(r.ansvarlig || '–')}
+                                  </td>
+                                  <td class="py-2.5 px-2.5 text-slate-800 whitespace-nowrap">
+                                    ${escapeHtml(r.status || 'Ikke startet')}
+                                  </td>
+                                </tr>
+                              `;
+                            })
+                            .join('')}
+                        </tbody>
+                      </table>
+                    </div>
+                  `
+              }
+            </div>
+
+            <!-- Optional Local Gemini API Key Settings (Hidden in Print) -->
+            <div class="print-hidden bg-white border border-slate-200 rounded-xl p-6">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="max-w-xl">
+                  <h3 class="text-sm font-semibold text-slate-900">Innstillinger for valgfri KI-hjelp (Gemini API-nøkkel)</h3>
+                  <p class="mt-1 text-xs text-slate-600 leading-relaxed">
+                    Legg eventuelt inn din egen Gemini API-nøkkel for å aktivere knappen «Foreslå tiltak med KI» inne i vurderingsskjemaene. Nøkkelen lagres utelukkende lokalt i din nettleser (localStorage) og sendes aldri til databasen.
+                  </p>
+                </div>
+
+                <form id="gemini-key-form" class="flex flex-wrap items-center gap-2 shrink-0">
+                  <div class="relative">
+                    <input
+                      id="gemini-key-input"
+                      type="${state.geminiKeyVisible ? 'text' : 'password'}"
+                      value="${escapeHtml(state.geminiKey)}"
+                      placeholder="AIza…"
+                      autocomplete="off"
+                      class="w-64 rounded-lg border border-slate-300 bg-white px-3 py-2 pr-14 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                    />
+                    <button
+                      type="button"
+                      id="toggle-gemini-visibility-btn"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium text-slate-500 hover:text-slate-800 px-1"
+                    >
+                      ${state.geminiKeyVisible ? 'Skjul' : 'Vis'}
+                    </button>
+                  </div>
+                  <button
+                    type="submit"
+                    class="px-3.5 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+                  >
+                    Lagre lokalt
+                  </button>
+                  ${
+                    state.geminiKey
+                      ? `
+                        <button
+                          type="button"
+                          id="clear-gemini-key-btn"
+                          class="px-3 py-2 text-xs font-medium text-red-700 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                        >
+                          Fjern
+                        </button>
+                      `
+                      : ''
+                  }
+                </form>
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
+      // ------------------------------------------------------------------
+      // Modals (Edit Assessment Row & Add/Edit Framework Item)
+      // ------------------------------------------------------------------
+      function renderModals() {
+        const modalRoot = document.getElementById('modal-root');
+        if (!modalRoot) return;
+
+        // 1. Assessment Row Editor Modal
+        if (state.editingAssessmentDraft) {
+          const d = state.editingAssessmentDraft;
+          const initScore = computeRisk(
+            d.innledendeSannsynlighet,
+            d.innledendeKonsekvens
+          );
+          const restScore = computeRisk(d.restSannsynlighet, d.restKonsekvens);
+
+          modalRoot.innerHTML = `
+            <div class="print-hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-edit-assessment-title">
+              <div class="w-full max-w-2xl bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden my-8">
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4">
+                  <div>
+                    <span class="text-xs font-mono tabular-nums font-semibold text-slate-500">Punkt ${escapeHtml(
+                      d.nr
+                    )} · År ${escapeHtml(d.arstall)}</span>
+                    <h2 id="modal-edit-assessment-title" class="text-lg font-bold text-slate-900">
+                      ${escapeHtml(d.komponentSted || 'Rediger risikovurdering')}
+                    </h2>
+                  </div>
+                  <button type="button" id="close-assessment-modal-btn" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+                    <span class="sr-only">Lukk</span>
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <form id="assessment-modal-form" class="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scroll">
+                  <div class="bg-slate-50 rounded-lg p-3.5 text-xs space-y-1">
+                    <div><strong class="text-slate-700">Farer:</strong> <span class="text-slate-800">${escapeHtml(
+                      d.farer || '–'
+                    )}</span></div>
+                    ${
+                      d.muligeArsaker
+                        ? `<div><strong class="text-slate-700">Årsaker:</strong> <span class="text-slate-700">${escapeHtml(
+                            d.muligeArsaker
+                          )}</span></div>`
+                        : ''
+                    }
+                  </div>
+
+                  <div>
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                      <label for="modal-tiltak" class="text-sm font-semibold text-slate-900">Iverksatte tiltak</label>
+                      <button
+                        type="button"
+                        id="modal-ai-suggest-btn"
+                        ${state.aiSuggesting ? 'disabled' : ''}
+                        class="px-2.5 py-1 text-xs font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        ${state.aiSuggesting ? 'Genererer…' : 'Foreslå tiltak med KI'}
+                      </button>
+                    </div>
+                    <textarea
+                      id="modal-tiltak"
+                      rows="3"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                    >${escapeHtml(d.tiltak || '')}</textarea>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label for="modal-ansvarlig" class="block text-xs font-medium text-slate-700 mb-1">Ansvarlig</label>
+                      <input
+                        id="modal-ansvarlig"
+                        type="text"
+                        list="role-suggestions-list"
+                        value="${escapeHtml(d.ansvarlig || '')}"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                      />
+                    </div>
+                    <div>
+                      <label for="modal-status" class="block text-xs font-medium text-slate-700 mb-1">Status</label>
+                      <select
+                        id="modal-status"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                      >
+                        ${STATUS_OPTIONS.map(
+                          (opt) =>
+                            `<option value="${escapeHtml(opt)}" ${
+                              (d.status || 'Ikke startet') === opt ? 'selected' : ''
+                            }>${escapeHtml(opt)}</option>`
+                        ).join('')}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-700">Innledende risiko</span>
+                        ${renderRiskCell(initScore)}
+                      </div>
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label for="modal-init-s" class="block text-[11px] text-slate-500 mb-1">Sannsynlighet</label>
+                          <select id="modal-init-s" class="w-full rounded border border-slate-300 px-2 py-1.5 text-xs font-mono">
+                            ${[1, 2, 3, 4, 5]
+                              .map(
+                                (n) =>
+                                  `<option value="${n}" ${
+                                    Number(d.innledendeSannsynlighet) === n ? 'selected' : ''
+                                  }>${n}</option>`
+                              )
+                              .join('')}
+                          </select>
+                        </div>
+                        <div>
+                          <label for="modal-init-k" class="block text-[11px] text-slate-500 mb-1">Konsekvens</label>
+                          <select id="modal-init-k" class="w-full rounded border border-slate-300 px-2 py-1.5 text-xs font-mono">
+                            ${[1, 2, 3, 4, 5]
+                              .map(
+                                (n) =>
+                                  `<option value="${n}" ${
+                                    Number(d.innledendeKonsekvens) === n ? 'selected' : ''
+                                  }>${n}</option>`
+                              )
+                              .join('')}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-700">Restrisiko</span>
+                        ${renderRiskCell(restScore)}
+                      </div>
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label for="modal-rest-s" class="block text-[11px] text-slate-500 mb-1">Sannsynlighet</label>
+                          <select id="modal-rest-s" class="w-full rounded border border-slate-300 px-2 py-1.5 text-xs font-mono">
+                            ${[1, 2, 3, 4, 5]
+                              .map(
+                                (n) =>
+                                  `<option value="${n}" ${
+                                    Number(d.restSannsynlighet) === n ? 'selected' : ''
+                                  }>${n}</option>`
+                              )
+                              .join('')}
+                          </select>
+                        </div>
+                        <div>
+                          <label for="modal-rest-k" class="block text-[11px] text-slate-500 mb-1">Konsekvens</label>
+                          <select id="modal-rest-k" class="w-full rounded border border-slate-300 px-2 py-1.5 text-xs font-mono">
+                            ${[1, 2, 3, 4, 5]
+                              .map(
+                                (n) =>
+                                  `<option value="${n}" ${
+                                    Number(d.restKonsekvens) === n ? 'selected' : ''
+                                  }>${n}</option>`
+                              )
+                              .join('')}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="modal-merknad" class="block text-xs font-medium text-slate-700 mb-1">
+                      Daglig merknad / kontrollnotat (valgfritt)
+                    </label>
+                    <input
+                      id="modal-merknad"
+                      type="text"
+                      value="${escapeHtml(d.merknad || '')}"
+                      placeholder="F.eks. kontrollert før åpning av heis"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                    />
+                  </div>
+
+                  ${
+                    d.updatedAt
+                      ? `<p class="text-[11px] text-slate-500">Sist lagret: ${escapeHtml(
+                          formatDateTimeNo(d.updatedAt)
+                        )} ${d.updatedBy ? 'av ' + escapeHtml(d.updatedBy) : ''}</p>`
+                      : ''
+                  }
+
+                  <div class="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      id="cancel-assessment-modal-btn"
+                      class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                    >
+                      Avbryt
+                    </button>
+                    <button
+                      type="submit"
+                      class="px-5 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800"
+                    >
+                      Lagre endringer
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          `;
+          bindAssessmentModalEvents();
+          return;
+        }
+
+        // 2. Framework Item Add/Edit Modal
+        if (state.editingFrameworkItem) {
+          const fw = state.editingFrameworkItem;
+          modalRoot.innerHTML = `
+            <div class="print-hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-fw-title">
+              <div class="w-full max-w-xl bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden my-8">
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                  <h2 id="modal-fw-title" class="text-lg font-bold text-slate-900">
+                    ${fw.isNew ? 'Nytt punkt i rammeverk' : `Rediger punkt ${escapeHtml(fw.nr)}`}
+                  </h2>
+                  <button type="button" id="close-fw-modal-btn" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <form id="fw-modal-form" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto custom-scroll">
+                  <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div class="sm:col-span-1">
+                      <label for="fw-nr" class="block text-xs font-medium text-slate-700 mb-1">Nr. *</label>
+                      <input id="fw-nr" required type="text" value="${escapeHtml(
+                        fw.nr || ''
+                      )}" placeholder="1.1" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono" />
+                    </div>
+                    <div class="sm:col-span-3">
+                      <label for="fw-komponent" class="block text-xs font-medium text-slate-700 mb-1">Komponent/Sted *</label>
+                      <input id="fw-komponent" required type="text" value="${escapeHtml(
+                        fw.komponentSted || ''
+                      )}" placeholder="F.eks. T-krokheis påstigning" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="fw-farer" class="block text-xs font-medium text-slate-700 mb-1">Farer *</label>
+                    <textarea id="fw-farer" required rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">${escapeHtml(
+                      fw.farer || ''
+                    )}</textarea>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label for="fw-arsaker" class="block text-xs font-medium text-slate-700 mb-1">Mulige årsaker</label>
+                      <textarea id="fw-arsaker" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">${escapeHtml(
+                        fw.muligeArsaker || ''
+                      )}</textarea>
+                    </div>
+                    <div>
+                      <label for="fw-skade" class="block text-xs font-medium text-slate-700 mb-1">Type skade/hendelse</label>
+                      <textarea id="fw-skade" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">${escapeHtml(
+                        fw.typeSkade || ''
+                      )}</textarea>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="fw-tiltak" class="block text-xs font-medium text-slate-700 mb-1">Standardtiltak (forhåndsutfylles i årlig gjennomgang)</label>
+                    <textarea id="fw-tiltak" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">${escapeHtml(
+                      fw.standardTiltak || ''
+                    )}</textarea>
+                  </div>
+
+                  <div>
+                    <label for="fw-ansvarlig" class="block text-xs font-medium text-slate-700 mb-1">Standard ansvarlig rolle</label>
+                    <input id="fw-ansvarlig" type="text" list="role-suggestions-list" value="${escapeHtml(
+                      fw.standardAnsvarlig || ''
+                    )}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+
+                  <div class="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                    <button type="button" id="cancel-fw-modal-btn" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">
+                      Avbryt
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800">
+                      Lagre punkt
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          `;
+          bindFrameworkModalEvents();
+          return;
+        }
+
+        modalRoot.innerHTML = '';
+      }
+
+      // ------------------------------------------------------------------
+      // 11. Main Render Function & Event Binding
+      // ------------------------------------------------------------------
+      function render() {
+        const root = document.getElementById('app');
+        if (!root) return;
+
+        if (state.authLoading) {
+          root.innerHTML = `
+            <div class="min-h-screen flex items-center justify-center p-6">
+              <div class="text-center space-y-3">
+                <div class="inline-block h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-blue-700"></div>
+                <p class="text-sm text-slate-500">Kontrollerer innlogging…</p>
+              </div>
+            </div>
+          `;
+          renderModals();
+          return;
+        }
+
+        if (!state.user) {
+          root.innerHTML = renderLoginScreen();
+          bindLoginEvents();
+          renderModals();
+          return;
+        }
+
+        let mainContent = '';
+        if (state.dataLoading) {
+          mainContent = `
+            <div class="py-16 text-center space-y-3">
+              <div class="inline-block h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-blue-700"></div>
+              <p class="text-sm text-slate-500">Henter data fra Firestore…</p>
+            </div>
+          `;
+        } else {
+          switch (state.activeTab) {
+            case 'wizard':
+              mainContent = renderWizardView();
+              break;
+            case 'framework':
+              mainContent = renderFrameworkView();
+              break;
+            case 'reporting':
+              mainContent = renderReportingView();
+              break;
+            case 'dashboard':
+            default:
+              mainContent = renderDashboardView();
+              break;
+          }
+        }
+
+        root.innerHTML = `
+          ${renderTopHeader()}
+          <main class="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            ${
+              state.dataError
+                ? `<div class="print-hidden mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">${escapeHtml(
+                    state.dataError
+                  )}</div>`
+                : ''
+            }
+            ${mainContent}
+          </main>
+          <footer class="print-hidden border-t border-slate-200 bg-white mt-auto">
+            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+              <span>Hvittingsfoss Alpinklubb · Risikovurdering og HMS</span>
+              <span>Risikotall = Sannsynlighet (1–5) × Konsekvens (1–5)</span>
+            </div>
+          </footer>
+        `;
+
+        bindWorkspaceEvents();
+        renderModals();
+      }
+
+      // ------------------------------------------------------------------
+      // 12. Event Listeners
+      // ------------------------------------------------------------------
+      function bindLoginEvents() {
+        const form = document.getElementById('login-form');
+        if (form) {
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email')?.value.trim() || '';
+            const password = document.getElementById('login-password')?.value || '';
+            if (!email || !password) return;
+
+            state.authSubmitting = true;
+            state.authError = '';
+            state.authInfo = '';
+            render();
+
+            try {
+              await signInWithEmailAndPassword(auth, email, password);
+            } catch (err) {
+              console.error('Login failed:', err);
+              state.authError = translateAuthError(err);
+            } finally {
+              state.authSubmitting = false;
+              render();
+            }
+          });
+        }
+
+        const forgotBtn = document.getElementById('forgot-password-btn');
+        if (forgotBtn) {
+          forgotBtn.addEventListener('click', async () => {
+            const email = document.getElementById('login-email')?.value.trim() || '';
+            if (!email) {
+              state.authError = 'Skriv inn e-postadressen din først for å tilbakestille passord.';
+              state.authInfo = '';
+              render();
+              return;
+            }
+            try {
+              await sendPasswordResetEmail(auth, email);
+              state.authError = '';
+              state.authInfo = `E-post for tilbakestilling av passord er sendt til ${email}.`;
+              render();
+            } catch (err) {
+              state.authError = translateAuthError(err);
+              state.authInfo = '';
+              render();
+            }
+          });
+        }
+      }
+
+      function bindWorkspaceEvents() {
+        // Tab navigation
+        document.querySelectorAll('[data-tab-btn], [data-tab-link]').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tab = btn.dataset.tabBtn || btn.dataset.tabLink;
+            if (tab) {
+              state.activeTab = tab;
+              if (tab === 'wizard') syncWizardDraft(true);
+              render();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          });
+        });
+
+        // Logout
+        document.getElementById('logout-btn')?.addEventListener('click', async () => {
+          try {
+            await signOut(auth);
+            showToast('Logget ut', 'info');
+          } catch (err) {
+            console.error(err);
+            showToast('Kunne ikke logge ut.', 'error');
+          }
+        });
+
+        // ---------------- Dashboard Events ----------------
+        document.getElementById('dashboard-year-select')?.addEventListener('change', (e) => {
+          state.selectedYear = parseInt(e.target.value, 10) || CURRENT_YEAR;
+          render();
+        });
+
+        document.getElementById('dashboard-search-input')?.addEventListener('input', (e) => {
+          state.searchQuery = e.target.value;
+          const cursorPos = e.target.selectionStart;
+          render();
+          const input = document.getElementById('dashboard-search-input');
+          if (input) {
+            input.focus();
+            input.setSelectionRange(cursorPos, cursorPos);
+          }
+        });
+
+        document.getElementById('dashboard-risk-filter')?.addEventListener('change', (e) => {
+          state.riskFilter = e.target.value;
+          render();
+        });
+
+        document.getElementById('dashboard-status-filter')?.addEventListener('change', (e) => {
+          state.statusFilter = e.target.value;
+          render();
+        });
+
+        document.getElementById('reset-dashboard-filters-btn')?.addEventListener('click', () => {
+          state.searchQuery = '';
+          state.riskFilter = 'all';
+          state.statusFilter = 'all';
+          render();
+        });
+
+        document.getElementById('start-wizard-for-year-btn')?.addEventListener('click', () => {
+          state.wizardYear = state.selectedYear;
+          state.activeTab = 'wizard';
+          syncWizardDraft(false);
+          render();
+        });
+
+        // Inline status dropdown in table
+        document.querySelectorAll('[data-status-select]').forEach((sel) => {
+          sel.addEventListener('click', (e) => e.stopPropagation());
+          sel.addEventListener('change', (e) => {
+            e.stopPropagation();
+            const docId = sel.dataset.statusSelect;
+            saveAssessmentStatus(docId, e.target.value);
+          });
+        });
+
+        // Click table row to edit assessment
+        document.querySelectorAll('[data-edit-assessment-row]').forEach((rowEl) => {
+          rowEl.addEventListener('click', (e) => {
+            if (e.target.closest('[data-stop-row-click]')) return;
+            const docId = rowEl.dataset.editAssessmentRow;
+            const found = state.vurderinger.find((v) => v.id === docId);
+            if (found) {
+              state.editingAssessmentId = docId;
+              state.editingAssessmentDraft = { ...found };
+              renderModals();
+            }
+          });
+        });
+
+        // ---------------- Wizard Events ----------------
+        document.getElementById('wizard-year-select')?.addEventListener('change', (e) => {
+          state.wizardYear = parseInt(e.target.value, 10) || CURRENT_YEAR;
+          syncWizardDraft(false);
+          render();
+        });
+
+        document.querySelectorAll('[data-wizard-select-index]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.wizardSelectedIndex = parseInt(btn.dataset.wizardSelectIndex, 10) || 0;
+            syncWizardDraft(false);
+            render();
+          });
+        });
+
+        document.querySelectorAll('[data-rating-field]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (!state.wizardDraft) return;
+            const field = btn.dataset.ratingField;
+            const val = parseInt(btn.dataset.ratingValue, 10);
+            state.wizardDraft[field] = clampRating(val, 1);
+            render();
+          });
+        });
+
+        document.getElementById('wizard-tiltak-input')?.addEventListener('input', (e) => {
+          if (state.wizardDraft) state.wizardDraft.tiltak = e.target.value;
+        });
+
+        document.getElementById('wizard-ansvarlig-input')?.addEventListener('input', (e) => {
+          if (state.wizardDraft) state.wizardDraft.ansvarlig = e.target.value;
+        });
+
+        document.getElementById('wizard-status-select')?.addEventListener('change', (e) => {
+          if (state.wizardDraft) state.wizardDraft.status = e.target.value;
+        });
+
+        document.getElementById('wizard-copy-prev-btn')?.addEventListener('click', () => {
+          if (!state.wizardDraft || !state.rammeverk[state.wizardSelectedIndex]) return;
+          const prevYear = Number(state.wizardYear) - 1;
+          const activeItem = state.rammeverk[state.wizardSelectedIndex];
+          const prev = findAssessmentForCheckpoint(prevYear, activeItem);
+          if (!prev) {
+            showToast(`Fant ingen vurdering for dette punktet i ${prevYear}.`, 'info');
+            return;
+          }
+          state.wizardDraft.innledendeSannsynlighet = clampRating(
+            prev.innledendeSannsynlighet,
+            2
+          );
+          state.wizardDraft.innledendeKonsekvens = clampRating(
+            prev.innledendeKonsekvens,
+            3
+          );
+          state.wizardDraft.tiltak = prev.tiltak ?? state.wizardDraft.tiltak;
+          state.wizardDraft.restSannsynlighet = clampRating(prev.restSannsynlighet, 1);
+          state.wizardDraft.restKonsekvens = clampRating(prev.restKonsekvens, 2);
+          state.wizardDraft.ansvarlig = prev.ansvarlig ?? state.wizardDraft.ansvarlig;
+          render();
+          showToast(`Hentet verdier fra ${prevYear}.`);
+        });
+
+        document.getElementById('wizard-ai-suggest-btn')?.addEventListener('click', async () => {
+          if (!state.wizardDraft) return;
+          state.aiSuggesting = true;
+          render();
+          try {
+            const suggestion = await requestGeminiSuggestion(state.wizardDraft);
+            if (suggestion) {
+              const current = (state.wizardDraft.tiltak || '').trim();
+              state.wizardDraft.tiltak = current
+                ? `${current}\n\nKI-forslag:\n${suggestion}`
+                : suggestion;
+              showToast('KI-forslag lagt inn i tiltaksfeltet.');
+            }
+          } catch (err) {
+            console.error(err);
+            showToast('Kunne ikke hente forslag fra Gemini API. Sjekk API-nøkkelen.', 'error');
+          } finally {
+            state.aiSuggesting = false;
+            render();
+          }
+        });
+
+        document.getElementById('wizard-prev-btn')?.addEventListener('click', () => {
+          if (state.wizardSelectedIndex > 0) {
+            state.wizardSelectedIndex -= 1;
+            syncWizardDraft(false);
+            render();
+          }
+        });
+
+        const handleWizardSave = async (advanceNext) => {
+          if (!state.wizardDraft) return;
+          state.wizardSaving = true;
+          render();
+          try {
+            const docId =
+              state.wizardDraft.id ||
+              makeDocId(
+                state.wizardYear,
+                state.wizardDraft.rammeverkId,
+                state.wizardDraft.nr
+              );
+            await saveAssessmentRecord(
+              {
+                ...state.wizardDraft,
+                arstall: state.wizardYear,
+              },
+              docId
+            );
+            state.wizardDraft.isSaved = true;
+            state.selectedYear = Number(state.wizardYear);
+
+            if (advanceNext && state.wizardSelectedIndex < state.rammeverk.length - 1) {
+              state.wizardSelectedIndex += 1;
+              syncWizardDraft(false);
+              showToast('Lagret! Gikk til neste punkt.');
+            } else {
+              showToast(`Punkt ${state.wizardDraft.nr} lagret for ${state.wizardYear}.`);
+            }
+          } catch (err) {
+            console.error(err);
+            showToast(translateFirestoreError(err), 'error');
+          } finally {
+            state.wizardSaving = false;
+            render();
+          }
+        };
+
+        document
+          .getElementById('wizard-save-only-btn')
+          ?.addEventListener('click', () => handleWizardSave(false));
+        document
+          .getElementById('wizard-save-next-btn')
+          ?.addEventListener('click', () => handleWizardSave(true));
+
+        // ---------------- Framework & Import Events ----------------
+        document.getElementById('framework-search-input')?.addEventListener('input', (e) => {
+          state.frameworkSearch = e.target.value;
+          const cursorPos = e.target.selectionStart;
+          render();
+          const input = document.getElementById('framework-search-input');
+          if (input) {
+            input.focus();
+            input.setSelectionRange(cursorPos, cursorPos);
+          }
+        });
+
+        document.getElementById('new-framework-item-btn')?.addEventListener('click', () => {
+          const nextNum = String(state.rammeverk.length + 1);
+          state.editingFrameworkItem = {
+            isNew: true,
+            nr: nextNum,
+            komponentSted: '',
+            farer: '',
+            muligeArsaker: '',
+            typeSkade: '',
+            standardTiltak: '',
+            standardAnsvarlig: '',
+          };
+          renderModals();
+        });
+
+        document.querySelectorAll('[data-edit-framework]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = state.rammeverk.find((x) => x.id === btn.dataset.editFramework);
+            if (item) {
+              state.editingFrameworkItem = { ...item, isNew: false };
+              renderModals();
+            }
+          });
+        });
+
+        document.querySelectorAll('[data-delete-framework]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.deleteFramework;
+            const item = state.rammeverk.find((x) => x.id === id);
+            if (!item) return;
+            // Inline two-step confirm via button state or clean modal? Use clean native confirm avoidance -> custom confirm modal or direct inline confirm!
+            if (btn.dataset.confirmDelete !== 'true') {
+              btn.dataset.confirmDelete = 'true';
+              btn.textContent = 'Bekreft slett?';
+              btn.classList.add('font-bold');
+              setTimeout(() => {
+                if (btn.isConnected) {
+                  btn.dataset.confirmDelete = 'false';
+                  btn.textContent = 'Slett';
+                  btn.classList.remove('font-bold');
+                }
+              }, 3500);
+              return;
+            }
+            try {
+              await deleteFrameworkItem(id);
+              showToast(`Punkt ${item.nr} slettet fra rammeverket.`);
+            } catch (err) {
+              console.error(err);
+              showToast(translateFirestoreError(err), 'error');
+            }
+          });
+        });
+
+        // Excel File Input
+        const fileInput = document.getElementById('excel-file-input');
+        if (fileInput) {
+          fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            state.importError = '';
+            try {
+              const buffer = await file.arrayBuffer();
+              const workbook = XLSX.read(buffer, { type: 'array' });
+              const parsed = parseExcelWorksheet(workbook);
+              state.importPreview = {
+                ...parsed,
+                fileName: file.name,
+                workbook,
+              };
+            } catch (err) {
+              console.error('Excel parse error:', err);
+              state.importPreview = null;
+              state.importError = err?.message || 'Kunne ikke lese filen.';
+            } finally {
+              e.target.value = '';
+              render();
+            }
+          });
+        }
+
+        document.getElementById('import-sheet-select')?.addEventListener('change', (e) => {
+          if (!state.importPreview?.workbook) return;
+          try {
+            const parsed = parseExcelWorksheet(
+              state.importPreview.workbook,
+              e.target.value
+            );
+            state.importPreview = {
+              ...parsed,
+              fileName: state.importPreview.fileName,
+              workbook: state.importPreview.workbook,
+            };
+            state.importError = '';
+          } catch (err) {
+            state.importError = err?.message || 'Kunne ikke lese valgt regneark.';
+          }
+          render();
+        });
+
+        document.getElementById('cancel-import-btn')?.addEventListener('click', () => {
+          state.importPreview = null;
+          state.importError = '';
+          render();
+        });
+
+        document.getElementById('import-history-checkbox')?.addEventListener('change', (e) => {
+          state.importIncludeHistory = e.target.checked;
+          render();
+        });
+
+        document.getElementById('import-history-year')?.addEventListener('input', (e) => {
+          state.importHistoryYear = parseInt(e.target.value, 10) || 2025;
+        });
+
+        document.getElementById('commit-import-btn')?.addEventListener('click', () => {
+          commitExcelImport();
+        });
+
+        // ---------------- Reporting & Export Events ----------------
+        document.getElementById('report-year-select')?.addEventListener('change', (e) => {
+          state.reportYear = parseInt(e.target.value, 10) || CURRENT_YEAR;
+          render();
+        });
+
+        document.getElementById('export-xlsx-btn')?.addEventListener('click', () => {
+          exportYearAssessments(state.reportYear, 'xlsx');
+        });
+
+        document.getElementById('export-csv-btn')?.addEventListener('click', () => {
+          exportYearAssessments(state.reportYear, 'csv');
+        });
+
+        document.getElementById('print-report-btn')?.addEventListener('click', () => {
+          window.print();
+        });
+
+        document
+          .getElementById('toggle-gemini-visibility-btn')
+          ?.addEventListener('click', () => {
+            state.geminiKeyVisible = !state.geminiKeyVisible;
+            render();
+          });
+
+        document.getElementById('gemini-key-form')?.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const val = document.getElementById('gemini-key-input')?.value.trim() || '';
+          state.geminiKey = val;
+          if (val) {
+            localStorage.setItem(GEMINI_KEY_STORAGE, val);
+            showToast('Gemini API-nøkkel lagret lokalt i nettleseren.');
+          } else {
+            localStorage.removeItem(GEMINI_KEY_STORAGE);
+            showToast('Gemini API-nøkkel fjernet.', 'info');
+          }
+          render();
+        });
+
+        document.getElementById('clear-gemini-key-btn')?.addEventListener('click', () => {
+          state.geminiKey = '';
+          localStorage.removeItem(GEMINI_KEY_STORAGE);
+          showToast('Gemini API-nøkkel fjernet.', 'info');
+          render();
+        });
+      }
+
+      function bindAssessmentModalEvents() {
+        const close = () => {
+          state.editingAssessmentId = null;
+          state.editingAssessmentDraft = null;
+          renderModals();
+        };
+
+        document
+          .getElementById('close-assessment-modal-btn')
+          ?.addEventListener('click', close);
+        document
+          .getElementById('cancel-assessment-modal-btn')
+          ?.addEventListener('click', close);
+
+        const syncModalSelects = () => {
+          const d = state.editingAssessmentDraft;
+          if (!d) return;
+          d.tiltak = document.getElementById('modal-tiltak')?.value ?? d.tiltak;
+          d.ansvarlig = document.getElementById('modal-ansvarlig')?.value ?? d.ansvarlig;
+          d.status = document.getElementById('modal-status')?.value ?? d.status;
+          d.merknad = document.getElementById('modal-merknad')?.value ?? d.merknad;
+          d.innledendeSannsynlighet = clampRating(
+            document.getElementById('modal-init-s')?.value,
+            d.innledendeSannsynlighet
+          );
+          d.innledendeKonsekvens = clampRating(
+            document.getElementById('modal-init-k')?.value,
+            d.innledendeKonsekvens
+          );
+          d.restSannsynlighet = clampRating(
+            document.getElementById('modal-rest-s')?.value,
+            d.restSannsynlighet
+          );
+          d.restKonsekvens = clampRating(
+            document.getElementById('modal-rest-k')?.value,
+            d.restKonsekvens
+          );
+        };
+
+        ['modal-init-s', 'modal-init-k', 'modal-rest-s', 'modal-rest-k'].forEach((id) => {
+          document.getElementById(id)?.addEventListener('change', () => {
+            syncModalSelects();
+            renderModals();
+          });
+        });
+
+        document.getElementById('modal-ai-suggest-btn')?.addEventListener('click', async () => {
+          syncModalSelects();
+          const d = state.editingAssessmentDraft;
+          if (!d) return;
+          state.aiSuggesting = true;
+          renderModals();
+          try {
+            const suggestion = await requestGeminiSuggestion(d);
+            if (suggestion) {
+              const current = (d.tiltak || '').trim();
+              d.tiltak = current ? `${current}\n\nKI-forslag:\n${suggestion}` : suggestion;
+              showToast('KI-forslag lagt inn.');
+            }
+          } catch (err) {
+            console.error(err);
+            showToast('Kunne ikke hente forslag fra Gemini API. Sjekk nøkkelen.', 'error');
+          } finally {
+            state.aiSuggesting = false;
+            renderModals();
+          }
+        });
+
+        document
+          .getElementById('assessment-modal-form')
+          ?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            syncModalSelects();
+            const d = state.editingAssessmentDraft;
+            const docId = state.editingAssessmentId;
+            if (!d || !docId) return;
+
+            try {
+              await saveAssessmentRecord(d, docId);
+              showToast(`Endringer lagret for punkt ${d.nr}.`);
+              close();
+            } catch (err) {
+              console.error(err);
+              showToast(translateFirestoreError(err), 'error');
+            }
+          });
+      }
+
+      function bindFrameworkModalEvents() {
+        const close = () => {
+          state.editingFrameworkItem = null;
+          renderModals();
+        };
+
+        document.getElementById('close-fw-modal-btn')?.addEventListener('click', close);
+        document.getElementById('cancel-fw-modal-btn')?.addEventListener('click', close);
+
+        document.getElementById('fw-modal-form')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fw = state.editingFrameworkItem;
+          if (!fw) return;
+
+          const payload = {
+            nr: document.getElementById('fw-nr')?.value.trim() || '',
+            komponentSted: document.getElementById('fw-komponent')?.value.trim() || '',
+            farer: document.getElementById('fw-farer')?.value.trim() || '',
+            muligeArsaker: document.getElementById('fw-arsaker')?.value.trim() || '',
+            typeSkade: document.getElementById('fw-skade')?.value.trim() || '',
+            standardTiltak: document.getElementById('fw-tiltak')?.value.trim() || '',
+            standardAnsvarlig: document.getElementById('fw-ansvarlig')?.value.trim() || '',
+          };
+
+          try {
+            await saveFrameworkItem(payload, fw.isNew ? null : fw.id);
+            showToast(
+              fw.isNew
+                ? `Nytt punkt ${payload.nr} lagt til i rammeverket.`
+                : `Punkt ${payload.nr} oppdatert.`
+            );
+            close();
+          } catch (err) {
+            console.error(err);
+            showToast(translateFirestoreError(err), 'error');
+          }
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // 13. Auth Lifecycle Observer
+      // ------------------------------------------------------------------
+      onAuthStateChanged(auth, (user) => {
+        state.authLoading = false;
+        state.user = user;
+        state.authError = '';
+        state.authInfo = '';
+
+        if (user) {
+          startFirestoreListeners();
+        } else {
+          stopFirestoreListeners();
+          state.rammeverk = [];
+          state.vurderinger = [];
+          state.wizardDraft = null;
+        }
+        render();
+      });
+    </script>
+  </body>
+</html>
