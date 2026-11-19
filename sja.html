@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SJA – Sikker Jobb Analyse | Hvittingsfoss Alpinklubb</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    @media print {
+      @page {
+        size: A4;
+        margin: 14mm;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #print-area {
+        display: block !important;
+      }
+    }
+  </style>
+<script src="/_aistudio-iframe.js?v=29045eb3"></script></head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
+
+  <!-- Lasteskjerm mens innlogging sjekkes -->
+  <div id="loading-screen" class="no-print min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6">
+    <div class="w-10 h-10 border-4 border-slate-200 border-t-sky-600 rounded-full animate-spin mb-4" aria-hidden="true"></div>
+    <p class="text-sm font-medium text-slate-600">Kontrollerer innlogging...</p>
+  </div>
+
+  <!-- Hovedinnhold (vises først når bruker er autentisert) -->
+  <div id="app-shell" class="hidden no-print min-h-screen flex flex-col">
+
+    <!-- Toppmeny (identisk med hovedportalen) -->
+    <header class="bg-slate-900 text-white h-16 shadow-md sticky top-0 z-30">
+      <div class="max-w-5xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+          <a
+            href="index.html"
+            class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap shrink-0"
+          >
+            ← Hovedportal
+          </a>
+          <div class="min-w-0 leading-tight">
+            <div class="text-sm sm:text-base font-bold tracking-tight text-white truncate">Hvittingsfoss Alpinklubb</div>
+            <div class="text-xs text-slate-300 truncate">SJA – Sikker Jobb Analyse</div>
+          </div>
+        </div>
+        <div id="user-email" class="hidden sm:block text-sm text-slate-300 truncate max-w-[240px]"></div>
+      </div>
+    </header>
+
+    <!-- Hovedområde -->
+    <main class="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
+
+      <!-- Fanenavigasjon -->
+      <nav aria-label="SJA-faner" class="bg-white rounded-xl shadow-sm border border-slate-200 p-1.5 mb-6 grid grid-cols-2 gap-1.5">
+        <button
+          type="button"
+          id="tab-btn-ny"
+          class="py-2.5 px-4 rounded-lg text-sm font-semibold transition bg-sky-600 text-white shadow-sm whitespace-nowrap"
+        >
+          Nytt SJA-skjema
+        </button>
+        <button
+          type="button"
+          id="tab-btn-arkiv"
+          class="py-2.5 px-4 rounded-lg text-sm font-medium transition text-slate-600 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap"
+        >
+          SJA-arkiv <span id="archive-count" class="tabular-nums text-xs opacity-80"></span>
+        </button>
+      </nav>
+
+      <!-- FANE 1: NYTT SJA-SKJEMA -->
+      <section id="tab-ny" aria-labelledby="tab-btn-ny">
+
+        <!-- Bekreftelse ved lagring -->
+        <div id="save-success-banner" class="hidden mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h2 class="text-sm font-semibold text-emerald-950">SJA-skjemaet er lagret og godkjent</h2>
+              <p class="text-sm text-emerald-800 mt-0.5">Analysen er nå registrert i SJA-arkivet og klar til bruk.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            id="btn-go-archive"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition whitespace-nowrap shrink-0"
+          >
+            Åpne SJA-arkiv
+          </button>
+        </div>
+
+        <!-- Mal-varsel når skjema er fylt ut fra arkiv -->
+        <div id="template-banner" class="hidden mb-6 bg-sky-50 border border-sky-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="text-sm text-sky-900">
+            <span class="font-semibold">Mal lastet inn:</span> Kontroller dato, deltakere og gå gjennom sjekklisten på nytt før godkjenning.
+          </div>
+          <button
+            type="button"
+            id="btn-reset-form"
+            class="text-sm font-medium text-sky-700 hover:text-sky-900 underline underline-offset-2 whitespace-nowrap self-start sm:self-auto"
+          >
+            Nullstill skjema
+          </button>
+        </div>
+
+        <!-- Feilmelding -->
+        <div id="form-error-banner" class="hidden mb-6 bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800"></div>
+
+        <form id="sja-form" class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sm:p-7 space-y-6">
+          <div class="border-b border-slate-200 pb-4">
+            <h1 class="text-xl font-bold text-slate-900">Nytt SJA-skjema</h1>
+            <p class="text-sm text-slate-600 mt-1">Sikker Jobb Analyse før oppstart av arbeid i anlegget.</p>
+          </div>
+
+          <!-- Dato og Område -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <div>
+              <label for="sja-dato" class="block text-sm font-medium text-slate-700 mb-1.5">Dato</label>
+              <input
+                type="date"
+                id="sja-dato"
+                required
+                class="w-full min-h-[46px] px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+              />
+            </div>
+
+            <div>
+              <label for="sja-omrade" class="block text-sm font-medium text-slate-700 mb-1.5">Område i anlegget</label>
+              <select
+                id="sja-omrade"
+                required
+                class="w-full min-h-[46px] px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+              >
+                <option value="">Velg område...</option>
+                <option value="Skitrekk / Heis">Skitrekk / Heis</option>
+                <option value="Nedfarter / Trasé">Nedfarter / Trasé</option>
+                <option value="Terrengpark">Terrengpark</option>
+                <option value="Tråkkemaskin / Garasje">Tråkkemaskin / Garasje</option>
+                <option value="Varmestue / Kiosk">Varmestue / Kiosk</option>
+                <option value="Annet">Annet</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Arbeidsoppgave -->
+          <div>
+            <label for="sja-oppgave" class="block text-sm font-medium text-slate-700 mb-1.5">Arbeidsoppgave</label>
+            <input
+              type="text"
+              id="sja-oppgave"
+              required
+              placeholder="F.eks. Inspeksjon av vaierhjul på mast 3 eller snørydding på tak"
+              class="w-full min-h-[46px] px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+            />
+          </div>
+
+          <!-- Deltakere og SJA-ansvarlig -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <div>
+              <label for="sja-deltakere" class="block text-sm font-medium text-slate-700 mb-1.5">Deltakere i arbeidet</label>
+              <input
+                type="text"
+                id="sja-deltakere"
+                required
+                placeholder="Navn på alle som utfører jobben"
+                class="w-full min-h-[46px] px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+              />
+            </div>
+
+            <div>
+              <label for="sja-ansvarlig" class="block text-sm font-medium text-slate-700 mb-1.5">Navn på SJA-ansvarlig</label>
+              <input
+                type="text"
+                id="sja-ansvarlig"
+                required
+                placeholder="Fullt navn på ansvarlig leder"
+                class="w-full min-h-[46px] px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+              />
+            </div>
+          </div>
+
+          <!-- Hurtigsjekkliste før oppstart -->
+          <div>
+            <div class="flex items-baseline justify-between mb-2.5">
+              <span class="block text-sm font-semibold text-slate-900">Hurtigsjekkliste før oppstart</span>
+              <span id="checklist-progress" class="text-xs font-medium text-slate-500 tabular-nums">0 av 5 kontrollert</span>
+            </div>
+            <div id="checklist-container" class="grid grid-cols-1 gap-2.5">
+              <!-- Genereres av JS -->
+            </div>
+          </div>
+
+          <!-- Spesifikke farer -->
+          <div>
+            <label for="sja-farer" class="block text-sm font-medium text-slate-700 mb-1.5">Spesifikke farer ved denne jobben</label>
+            <textarea
+              id="sja-farer"
+              rows="3"
+              required
+              placeholder="Beskriv hvilke farer som kan oppstå (f.eks. fall, klemfare, strøm, glatt underlag, skikjørere)..."
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+            ></textarea>
+          </div>
+
+          <!-- Tiltak -->
+          <div>
+            <label for="sja-tiltak" class="block text-sm font-medium text-slate-700 mb-1.5">Tiltak som iverksettes før oppstart</label>
+            <textarea
+              id="sja-tiltak"
+              rows="3"
+              required
+              placeholder="Beskriv tiltak for å fjerne eller redusere farene før arbeidet starter..."
+              class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+            ></textarea>
+          </div>
+
+          <!-- Godkjenning -->
+          <div class="pt-2 border-t border-slate-200">
+            <label
+              for="sja-godkjent"
+              class="flex items-start gap-3.5 p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 cursor-pointer select-none transition"
+            >
+              <input
+                type="checkbox"
+                id="sja-godkjent"
+                class="mt-0.5 w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+              />
+              <span class="text-sm font-medium text-slate-800 leading-snug">
+                Jeg bekrefter at farer er vurdert, tiltak er iverksatt og alle deltakere er informert
+              </span>
+            </label>
+          </div>
+
+          <!-- Lagre-knapp -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+            <p class="text-xs text-slate-500">Skjemaet lagres direkte i klubbens SJA-arkiv.</p>
+            <button
+              type="submit"
+              id="btn-submit-sja"
+              disabled
+              class="w-full sm:w-auto min-h-[48px] px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition shadow-sm flex items-center justify-center gap-2 text-sm"
+            >
+              <span>Lagre og godkjenn SJA</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- FANE 2: SJA-ARKIV -->
+      <section id="tab-arkiv" aria-labelledby="tab-btn-arkiv" class="hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sm:p-7">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-200">
+            <div>
+              <h1 class="text-xl font-bold text-slate-900">SJA-arkiv</h1>
+              <p class="text-sm text-slate-600 mt-1">Klikk på en rad for å åpne hele skjemaet, skrive ut eller bruke det som mal.</p>
+            </div>
+          </div>
+
+          <!-- Søk og filter -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-5">
+            <div class="sm:col-span-2 relative">
+              <label for="archive-search" class="sr-only">Søk i SJA-arkiv</label>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+              <input
+                type="search"
+                id="archive-search"
+                placeholder="Søk etter oppgave, ansvarlig, deltaker eller dato..."
+                class="w-full min-h-[44px] pl-10 pr-3.5 py-2 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+              />
+            </div>
+
+            <div>
+              <label for="archive-filter-area" class="sr-only">Område i anlegget</label>
+              <select
+                id="archive-filter-area"
+                aria-label="Område i anlegget"
+                class="w-full min-h-[44px] px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-600 transition"
+              >
+                <option value="">Alle områder i anlegget</option>
+                <option value="Skitrekk / Heis">Skitrekk / Heis</option>
+                <option value="Nedfarter / Trasé">Nedfarter / Trasé</option>
+                <option value="Terrengpark">Terrengpark</option>
+                <option value="Tråkkemaskin / Garasje">Tråkkemaskin / Garasje</option>
+                <option value="Varmestue / Kiosk">Varmestue / Kiosk</option>
+                <option value="Annet">Annet</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Feil ved henting av arkiv -->
+          <div id="archive-error" class="hidden mb-4 bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800"></div>
+
+          <!-- Arkivliste -->
+          <div id="archive-list" class="space-y-2.5">
+            <div class="py-10 text-center text-sm text-slate-500">Henter lagrede SJA-skjemaer...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL FOR DETALJVISNING AV SJA -->
+  <div
+    id="detail-modal"
+    class="hidden no-print fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+  >
+    <div class="bg-white w-full max-w-2xl rounded-t-2xl sm:rounded-xl shadow-xl border border-slate-200 max-h-[92vh] flex flex-col overflow-hidden">
+      <!-- Modal topp -->
+      <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <h2 id="modal-title" class="text-lg font-bold text-slate-900 leading-snug"></h2>
+          <p id="modal-subtitle" class="text-sm text-slate-500 mt-0.5 tabular-nums"></p>
+        </div>
+        <button
+          type="button"
+          id="btn-close-modal"
+          aria-label="Lukk vindu"
+          class="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition shrink-0"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal innhold -->
+      <div id="modal-body" class="p-5 overflow-y-auto space-y-5 text-sm"></div>
+
+      <!-- PDF bekreftelse -->
+      <div id="modal-pdf-status" class="hidden px-5 py-2.5 bg-emerald-50 border-t border-emerald-200 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-900">
+        <span id="modal-pdf-filename" class="font-medium truncate"></span>
+        <div class="flex items-center gap-3 shrink-0">
+          <a id="modal-pdf-download-again" href="#" download class="font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2">
+            Last ned på nytt
+          </a>
+          <button type="button" id="btn-direct-print" class="font-semibold text-slate-700 hover:text-slate-900 underline underline-offset-2">
+            Skriv ut direkte
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal bunn med knapper -->
+      <div class="px-5 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:justify-end gap-2.5">
+        <button
+          type="button"
+          id="btn-print-sja"
+          class="min-h-[44px] px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-semibold rounded-lg text-sm transition flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
+          </svg>
+          <span>Skriv ut / Lagre PDF</span>
+        </button>
+        <button
+          type="button"
+          id="btn-use-template"
+          class="min-h-[44px] px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-sm transition flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span>Bruk som mal for ny SJA</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UTSKRIFTSVISNING (kun synlig ved utskrift / Lagre som PDF) -->
+  <div id="print-area" class="hidden"></div>
+
+  <!-- Firebase SDK v10+ & Applikasjonslogikk -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      onSnapshot,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCywOO4XYBpBOs6fe-WWTySu0AXpnZve8s",
+      authDomain: "://firebaseapp.com",
+      projectId: "hvittingfoss-alpinklubb-ec611",
+      storageBucket: "hvittingfoss-alpinklubb-ec611.firebasestorage.app",
+      messagingSenderId: "428686855423",
+      appId: "1:428686855423:web:f2b07c74f690ea75a7d0ca"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const CHECKLIST_ITEMS = [
+      "Strøm og nødstopp er sikret / låst",
+      "Vær, vind og føreforhold er vurdert",
+      "Området er sperret av mot publikum / skikjørere",
+      "Riktig verneutstyr og fallsikring er kontrollert",
+      "Samband / mobil har dekning på stedet"
+    ];
+
+    let currentUser = null;
+    let sjaList = [];
+    let selectedSja = null;
+    let unsubscribeArchive = null;
+    let checklistState = CHECKLIST_ITEMS.map(() => false);
+
+    // DOM-elementer
+    const loadingScreen = document.getElementById("loading-screen");
+    const appShell = document.getElementById("app-shell");
+    const userEmailEl = document.getElementById("user-email");
+
+    const tabBtnNy = document.getElementById("tab-btn-ny");
+    const tabBtnArkiv = document.getElementById("tab-btn-arkiv");
+    const tabNy = document.getElementById("tab-ny");
+    const tabArkiv = document.getElementById("tab-arkiv");
+    const archiveCountEl = document.getElementById("archive-count");
+
+    const sjaForm = document.getElementById("sja-form");
+    const inputDato = document.getElementById("sja-dato");
+    const inputOmrade = document.getElementById("sja-omrade");
+    const inputOppgave = document.getElementById("sja-oppgave");
+    const inputDeltakere = document.getElementById("sja-deltakere");
+    const inputAnsvarlig = document.getElementById("sja-ansvarlig");
+    const inputFarer = document.getElementById("sja-farer");
+    const inputTiltak = document.getElementById("sja-tiltak");
+    const inputGodkjent = document.getElementById("sja-godkjent");
+    const btnSubmitSja = document.getElementById("btn-submit-sja");
+
+    const checklistContainer = document.getElementById("checklist-container");
+    const checklistProgress = document.getElementById("checklist-progress");
+    const saveSuccessBanner = document.getElementById("save-success-banner");
+    const templateBanner = document.getElementById("template-banner");
+    const formErrorBanner = document.getElementById("form-error-banner");
+
+    const archiveSearch = document.getElementById("archive-search");
+    const archiveFilterArea = document.getElementById("archive-filter-area");
+    const archiveListEl = document.getElementById("archive-list");
+    const archiveErrorEl = document.getElementById("archive-error");
+
+    const detailModal = document.getElementById("detail-modal");
+    const modalTitle = document.getElementById("modal-title");
+    const modalSubtitle = document.getElementById("modal-subtitle");
+    const modalBody = document.getElementById("modal-body");
+    const btnCloseModal = document.getElementById("btn-close-modal");
+    const btnPrintSja = document.getElementById("btn-print-sja");
+    const btnUseTemplate = document.getElementById("btn-use-template");
+    const printArea = document.getElementById("print-area");
+
+    function getTodayDateString() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatDateNo(dateStr) {
+      if (!dateStr) return "Ukjent dato";
+      const parts = String(dateStr).split("-");
+      if (parts.length === 3) {
+        return `${parts[2]}.${parts[1]}.${parts[0]}`;
+      }
+      return dateStr;
+    }
+
+    function renderChecklist() {
+      checklistContainer.innerHTML = "";
+      let checkedCount = 0;
+
+      CHECKLIST_ITEMS.forEach((label, index) => {
+        const isChecked = checklistState[index];
+        if (isChecked) checkedCount++;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("aria-pressed", String(isChecked));
+        btn.className = isChecked
+          ? "w-full min-h-[56px] p-3.5 sm:p-4 rounded-xl border border-emerald-500 bg-emerald-50 text-emerald-950 text-left flex items-center gap-3.5 transition cursor-pointer select-none"
+          : "w-full min-h-[56px] p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-slate-50 hover:border-slate-300 text-slate-800 text-left flex items-center gap-3.5 transition cursor-pointer select-none";
+
+        btn.innerHTML = `
+          <span class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition ${
+            isChecked
+              ? "bg-emerald-600 text-white"
+              : "bg-white border-2 border-slate-300 text-transparent"
+          }">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          <span class="text-sm font-medium flex-1 leading-snug">${escapeHtml(label)}</span>
+          <span class="text-xs font-semibold shrink-0 ${isChecked ? "text-emerald-700" : "text-slate-400"}">
+            ${isChecked ? "OK" : "Ikke sjekket"}
+          </span>
+        `;
+
+        btn.addEventListener("click", () => {
+          checklistState[index] = !checklistState[index];
+          renderChecklist();
+        });
+
+        checklistContainer.appendChild(btn);
+      });
+
+      checklistProgress.textContent = `${checkedCount} av ${CHECKLIST_ITEMS.length} kontrollert`;
+    }
+
+    function resetForm(keepSuccessBanner = false) {
+      sjaForm.reset();
+      inputDato.value = getTodayDateString();
+      checklistState = CHECKLIST_ITEMS.map(() => false);
+      renderChecklist();
+      btnSubmitSja.disabled = true;
+      templateBanner.classList.add("hidden");
+      formErrorBanner.classList.add("hidden");
+      if (!keepSuccessBanner) {
+        saveSuccessBanner.classList.add("hidden");
+      }
+    }
+
+    function switchTab(tabName) {
+      if (tabName === "ny") {
+        tabNy.classList.remove("hidden");
+        tabArkiv.classList.add("hidden");
+        tabBtnNy.className = "py-2.5 px-4 rounded-lg text-sm font-semibold transition bg-sky-600 text-white shadow-sm whitespace-nowrap";
+        tabBtnArkiv.className = "py-2.5 px-4 rounded-lg text-sm font-medium transition text-slate-600 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap";
+      } else {
+        tabNy.classList.add("hidden");
+        tabArkiv.classList.remove("hidden");
+        tabBtnArkiv.className = "py-2.5 px-4 rounded-lg text-sm font-semibold transition bg-sky-600 text-white shadow-sm whitespace-nowrap";
+        tabBtnNy.className = "py-2.5 px-4 rounded-lg text-sm font-medium transition text-slate-600 hover:text-slate-900 hover:bg-slate-50 whitespace-nowrap";
+      }
+    }
+
+    function getChecklistSummary(doc) {
+      if (!Array.isArray(doc.sjekkliste)) return { checked: 0, total: CHECKLIST_ITEMS.length };
+      const checked = doc.sjekkliste.filter((item) => Boolean(item && item.checked)).length;
+      return { checked, total: doc.sjekkliste.length || CHECKLIST_ITEMS.length };
+    }
+
+    function renderArchive() {
+      const searchText = archiveSearch.value.trim().toLowerCase();
+      const areaFilter = archiveFilterArea.value;
+
+      const filtered = sjaList.filter((item) => {
+        if (areaFilter && item.omrade !== areaFilter) return false;
+        if (!searchText) return true;
+        const haystack = [
+          item.arbeidsoppgave,
+          item.omrade,
+          item.ansvarlig,
+          item.deltakere,
+          item.dato,
+          formatDateNo(item.dato),
+          item.farer,
+          item.tiltak,
+          item.opprettetAv
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(searchText);
+      });
+
+      archiveCountEl.textContent = sjaList.length > 0 ? `(${sjaList.length})` : "";
+
+      if (sjaList.length === 0) {
+        archiveListEl.innerHTML = `
+          <div class="py-12 text-center border border-dashed border-slate-200 rounded-xl">
+            <p class="text-sm font-medium text-slate-700">Ingen SJA-skjemaer er lagret ennå</p>
+            <p class="text-xs text-slate-500 mt-1">Gå til «Nytt SJA-skjema» for å registrere den første analysen.</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (filtered.length === 0) {
+        archiveListEl.innerHTML = `
+          <div class="py-10 text-center border border-dashed border-slate-200 rounded-xl px-4">
+            <p class="text-sm font-medium text-slate-700">Ingen treff på søket</p>
+            <p class="text-xs text-slate-500 mt-1">Prøv å endre søkeord eller velg «Alle områder i anlegget».</p>
+            <button type="button" id="btn-clear-archive-filters" class="mt-3 px-3.5 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg transition">
+              Nullstill søk og filter
+            </button>
+          </div>
+        `;
+        const clearBtn = document.getElementById("btn-clear-archive-filters");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", () => {
+            archiveSearch.value = "";
+            archiveFilterArea.value = "";
+            renderArchive();
+          });
+        }
+        return;
+      }
+
+      archiveListEl.innerHTML = "";
+      filtered.forEach((doc) => {
+        const { checked, total } = getChecklistSummary(doc);
+        const rowBtn = document.createElement("button");
+        rowBtn.type = "button";
+        rowBtn.className = "w-full text-left p-4 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/40 transition flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer";
+
+        rowBtn.innerHTML = `
+          <div class="min-w-0">
+            <div class="font-semibold text-slate-900 text-sm sm:text-base truncate">${escapeHtml(doc.arbeidsoppgave || "Uten tittel")}</div>
+            <div class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span class="tabular-nums font-medium text-slate-700">${escapeHtml(formatDateNo(doc.dato))}</span>
+              <span aria-hidden="true">·</span>
+              <span>${escapeHtml(doc.omrade || "Ukjent område")}</span>
+              <span aria-hidden="true">·</span>
+              <span>Ansvarlig: ${escapeHtml(doc.ansvarlig || "Ikke oppgitt")}</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+            <span class="text-xs font-medium tabular-nums ${checked === total ? "text-emerald-700" : "text-slate-600"}">
+              ${checked}/${total} sjekkpunkter
+            </span>
+            <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        `;
+
+        rowBtn.addEventListener("click", () => openModal(doc));
+        archiveListEl.appendChild(rowBtn);
+      });
+    }
+
+    function openModal(doc) {
+      selectedSja = doc;
+      modalTitle.textContent = doc.arbeidsoppgave || "SJA-skjema";
+      modalSubtitle.textContent = `${formatDateNo(doc.dato)} · ${doc.omrade || "Ukjent område"}`;
+
+      const checklistRows = (Array.isArray(doc.sjekkliste) && doc.sjekkliste.length > 0
+        ? doc.sjekkliste
+        : CHECKLIST_ITEMS.map((label) => ({ label, checked: false }))
+      )
+        .map((item) => {
+          const ok = Boolean(item.checked);
+          return `
+            <li class="flex items-center justify-between gap-3 py-2 px-3 rounded-lg ${ok ? "bg-emerald-50 text-emerald-950" : "bg-slate-50 text-slate-600"}">
+              <span class="text-sm">${escapeHtml(item.label)}</span>
+              <span class="text-xs font-semibold shrink-0 ${ok ? "text-emerald-700" : "text-slate-500"}">
+                ${ok ? "✓ Kontrollert" : "Ikke avkrysset"}
+              </span>
+            </li>
+          `;
+        })
+        .join("");
+
+      modalBody.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 rounded-xl p-4 border border-slate-200">
+          <div>
+            <div class="text-xs text-slate-500">Dato</div>
+            <div class="font-medium text-slate-900 tabular-nums mt-0.5">${escapeHtml(formatDateNo(doc.dato))}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500">Område i anlegget</div>
+            <div class="font-medium text-slate-900 mt-0.5">${escapeHtml(doc.omrade || "-")}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500">SJA-ansvarlig</div>
+            <div class="font-medium text-slate-900 mt-0.5">${escapeHtml(doc.ansvarlig || "-")}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500">Deltakere i arbeidet</div>
+            <div class="font-medium text-slate-900 mt-0.5">${escapeHtml(doc.deltakere || "-")}</div>
+          </div>
+          ${doc.opprettetAv ? `
+          <div class="sm:col-span-2 pt-2 border-t border-slate-200/80">
+            <div class="text-xs text-slate-500">Registrert av</div>
+            <div class="text-xs font-medium text-slate-700 mt-0.5">${escapeHtml(doc.opprettetAv)}</div>
+          </div>
+          ` : ""}
+        </div>
+
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Hurtigsjekkliste før oppstart</h3>
+          <ul class="space-y-1.5">${checklistRows}</ul>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Spesifikke farer ved denne jobben</h3>
+          <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 whitespace-pre-wrap leading-relaxed">${escapeHtml(doc.farer || "-")}</div>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">Tiltak som iverksettes før oppstart</h3>
+          <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 whitespace-pre-wrap leading-relaxed">${escapeHtml(doc.tiltak || "-")}</div>
+        </div>
+
+        <div class="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
+          ✓ Godkjent: Farer er vurdert, tiltak er iverksatt og alle deltakere er informert.
+        </div>
+      `;
+
+      const modalPdfStatus = document.getElementById("modal-pdf-status");
+      if (modalPdfStatus) modalPdfStatus.classList.add("hidden");
+
+      detailModal.classList.remove("hidden");
+      document.body.classList.add("overflow-hidden");
+    }
+
+    function closeModal() {
+      detailModal.classList.add("hidden");
+      document.body.classList.remove("overflow-hidden");
+    }
+
+    function generateSjaPdf(record) {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        return null;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 16;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 14;
+
+      const ensureSpace = (neededMm) => {
+        if (y + neededMm > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+      };
+
+      // Toppbanner
+      doc.setFillColor(15, 23, 42);
+      doc.roundedRect(margin, y, contentWidth, 22, 2, 2, "F");
+
+      doc.setTextColor(186, 230, 253);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.text("HVITTINGSFOSS ALPINKLUBB", margin + 5, y + 7.5);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.text("Sikker Jobb Analyse (SJA)", margin + 5, y + 15.5);
+
+      doc.setTextColor(226, 232, 240);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.text(`Dato: ${formatDateNo(record.dato)}`, margin + contentWidth - 5, y + 15.5, { align: "right" });
+
+      y += 28;
+
+      // Hovedinfo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      const taskLines = doc.splitTextToSize(record.arbeidsoppgave || "-", contentWidth - 10);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      const participantLines = doc.splitTextToSize(record.deltakere || "-", contentWidth - 10);
+
+      const taskBlockH = taskLines.length * 5.2;
+      const partBlockH = participantLines.length * 4.6;
+      const extraCreatorH = record.opprettetAv ? 9 : 0;
+      const metaBoxH = 12 + taskBlockH + 14 + partBlockH + 8 + extraCreatorH;
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, y, contentWidth, metaBoxH, 2, 2, "FD");
+
+      let my = y + 6;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("ARBEIDSOPPGAVE", margin + 5, my);
+
+      my += 5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text(taskLines, margin + 5, my);
+      my += taskBlockH + 4;
+
+      const colMid = margin + contentWidth / 2;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("OMRÅDE I ANLEGGET", margin + 5, my);
+      doc.text("SJA-ANSVARLIG", colMid + 2, my);
+
+      my += 4.5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(record.omrade || "-", margin + 5, my);
+      doc.text(record.ansvarlig || "-", colMid + 2, my);
+      my += 7.5;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("DELTAKERE I ARBEIDET", margin + 5, my);
+
+      my += 4.5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(participantLines, margin + 5, my);
+      my += partBlockH + 2;
+
+      if (record.opprettetAv) {
+        my += 3;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Registrert av: ${record.opprettetAv}`, margin + 5, my);
+      }
+
+      y += metaBoxH + 8;
+
+      // Hurtigsjekkliste
+      ensureSpace(46);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(51, 65, 85);
+      doc.text("HURTIGSJEKKLISTE FØR OPPSTART", margin, y);
+      y += 3;
+
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.35);
+      doc.line(margin, y, margin + contentWidth, y);
+
+      const checklistItems = Array.isArray(record.sjekkliste) && record.sjekkliste.length > 0
+        ? record.sjekkliste
+        : CHECKLIST_ITEMS.map((label) => ({ label, checked: false }));
+
+      checklistItems.forEach((item) => {
+        ensureSpace(10);
+        const rowH = 8.5;
+        const boxY = y + 2.2;
+        const boxX = margin + 1;
+
+        if (item.checked) {
+          doc.setFillColor(5, 150, 105);
+          doc.setDrawColor(5, 150, 105);
+          doc.roundedRect(boxX, boxY, 4, 4, 0.8, 0.8, "FD");
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.55);
+          doc.line(boxX + 0.9, boxY + 2.1, boxX + 1.7, boxY + 2.9);
+          doc.line(boxX + 1.7, boxY + 2.9, boxX + 3.1, boxY + 1.1);
+        } else {
+          doc.setFillColor(255, 255, 255);
+          doc.setDrawColor(148, 163, 184);
+          doc.setLineWidth(0.35);
+          doc.roundedRect(boxX, boxY, 4, 4, 0.8, 0.8, "FD");
+        }
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(String(item.label || ""), margin + 8, y + 5.4);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        if (item.checked) {
+          doc.setTextColor(4, 120, 87);
+          doc.text("Kontrollert", margin + contentWidth - 1, y + 5.4, { align: "right" });
+        } else {
+          doc.setTextColor(100, 116, 139);
+          doc.text("Ikke avkrysset", margin + contentWidth - 1, y + 5.4, { align: "right" });
+        }
+
+        y += rowH;
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.25);
+        doc.line(margin, y, margin + contentWidth, y);
+      });
+
+      y += 8;
+
+      const renderTextSection = (heading, body) => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9.5);
+        const lines = doc.splitTextToSize(body || "-", contentWidth - 8);
+        const boxH = Math.max(14, lines.length * 4.6 + 7);
+        ensureSpace(boxH + 10);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text(heading, margin, y);
+        y += 3;
+
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(margin, y, contentWidth, boxH, 1.5, 1.5, "FD");
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(lines, margin + 4, y + 5.8);
+
+        y += boxH + 7;
+      };
+
+      renderTextSection("SPESIFIKKE FARER VED DENNE JOBBEN", record.farer);
+      renderTextSection("TILTAK SOM IVERKSETTES FØR OPPSTART", record.tiltak);
+
+      // Godkjenning
+      ensureSpace(24);
+      doc.setFillColor(236, 253, 245);
+      doc.setDrawColor(167, 243, 208);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(margin, y, contentWidth, 21, 2, 2, "FD");
+
+      const gx = margin + 4.5;
+      const gy = y + 4.5;
+      doc.setFillColor(5, 150, 105);
+      doc.roundedRect(gx, gy, 4, 4, 0.8, 0.8, "F");
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.55);
+      doc.line(gx + 0.9, gy + 2.1, gx + 1.7, gy + 2.9);
+      doc.line(gx + 1.7, gy + 2.9, gx + 3.1, gy + 1.1);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(6, 78, 59);
+      doc.text("Godkjenning: Farer er vurdert, tiltak er iverksatt og alle deltakere er informert.", margin + 11, y + 7.6);
+
+      doc.setDrawColor(167, 243, 208);
+      doc.setLineWidth(0.25);
+      doc.line(margin + 4, y + 12.5, margin + contentWidth - 4, y + 12.5);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(6, 95, 70);
+      doc.text(`SJA-ansvarlig: ${record.ansvarlig || "-"}`, margin + 4.5, y + 17.5);
+      doc.text(`PDF generert: ${new Date().toLocaleDateString("no-NO")}`, margin + contentWidth - 4.5, y + 17.5, { align: "right" });
+
+      const safeTask = (record.arbeidsoppgave || "SJA-skjema").replace(/[\\/:*?"<>|]/g, "-").trim();
+      const datePart = record.dato ? ` (${record.dato})` : "";
+      const filename = `SJA - ${safeTask}${datePart}.pdf`;
+
+      const blob = doc.output("blob");
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      return { filename, blobUrl };
+    }
+
+    function preparePrintView(doc) {
+      const checklistRows = (Array.isArray(doc.sjekkliste) && doc.sjekkliste.length > 0
+        ? doc.sjekkliste
+        : CHECKLIST_ITEMS.map((label) => ({ label, checked: false }))
+      )
+        .map((item) => {
+          const ok = Boolean(item.checked);
+          return `
+            <tr class="border-b border-slate-200">
+              <td class="py-2 pr-4 text-sm text-slate-900">${escapeHtml(item.label)}</td>
+              <td class="py-2 text-sm font-semibold text-right whitespace-nowrap ${ok ? "text-emerald-700" : "text-slate-500"}">
+                ${ok ? "✓ Kontrollert" : "Ikke avkrysset"}
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      printArea.innerHTML = `
+        <div class="max-w-3xl mx-auto text-slate-900 space-y-6">
+          <div class="border-b-2 border-slate-900 pb-4 flex items-baseline justify-between gap-4">
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Hvittingsfoss Alpinklubb</div>
+              <h1 class="text-2xl font-bold text-slate-900 mt-1">Sikker Jobb Analyse (SJA)</h1>
+            </div>
+            <div class="text-sm font-medium text-slate-700 tabular-nums">Dato: ${escapeHtml(formatDateNo(doc.dato))}</div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 border border-slate-300 rounded-lg p-4 bg-slate-50">
+            <div class="col-span-2">
+              <div class="text-xs font-semibold text-slate-500">Arbeidsoppgave</div>
+              <div class="text-base font-bold text-slate-900 mt-0.5">${escapeHtml(doc.arbeidsoppgave || "-")}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-slate-500">Område i anlegget</div>
+              <div class="text-sm font-medium text-slate-900 mt-0.5">${escapeHtml(doc.omrade || "-")}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-slate-500">Navn på SJA-ansvarlig</div>
+              <div class="text-sm font-medium text-slate-900 mt-0.5">${escapeHtml(doc.ansvarlig || "-")}</div>
+            </div>
+            <div class="col-span-2">
+              <div class="text-xs font-semibold text-slate-500">Deltakere i arbeidet</div>
+              <div class="text-sm font-medium text-slate-900 mt-0.5">${escapeHtml(doc.deltakere || "-")}</div>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700 mb-2">Hurtigsjekkliste før oppstart</h2>
+            <table class="w-full border-collapse border-t border-slate-300">
+              <tbody>${checklistRows}</tbody>
+            </table>
+          </div>
+
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700 mb-1.5">Spesifikke farer ved denne jobben</h2>
+            <div class="border border-slate-300 rounded-lg p-3.5 text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(doc.farer || "-")}</div>
+          </div>
+
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700 mb-1.5">Tiltak som iverksettes før oppstart</h2>
+            <div class="border border-slate-300 rounded-lg p-3.5 text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(doc.tiltak || "-")}</div>
+          </div>
+
+          <div class="border border-slate-300 rounded-lg p-4 bg-slate-50 space-y-3">
+            <div class="text-sm font-semibold text-slate-900">
+              ✓ Godkjenning: Jeg bekrefter at farer er vurdert, tiltak er iverksatt og alle deltakere er informert.
+            </div>
+            <div class="text-xs text-slate-600 flex flex-wrap justify-between gap-2 pt-2 border-t border-slate-200">
+              <span>SJA-ansvarlig: ${escapeHtml(doc.ansvarlig || "-")}</span>
+              ${doc.opprettetAv ? `<span>Registrert av: ${escapeHtml(doc.opprettetAv)}</span>` : ""}
+              <span>Skrevet ut: ${escapeHtml(new Date().toLocaleDateString("no-NO"))}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function subscribeToArchive() {
+      if (unsubscribeArchive) unsubscribeArchive();
+      const sjaRef = collection(db, "sja");
+
+      unsubscribeArchive = onSnapshot(
+        sjaRef,
+        (snapshot) => {
+          archiveErrorEl.classList.add("hidden");
+          const docs = [];
+          snapshot.forEach((docSnap) => {
+            docs.push({ id: docSnap.id, ...docSnap.data() });
+          });
+
+          const getSortTime = (item) => {
+            if (item.createdAt && typeof item.createdAt.toMillis === "function") {
+              return item.createdAt.toMillis();
+            }
+            if (typeof item.createdAt === "number") {
+              return item.createdAt;
+            }
+            if (item.timestamp && typeof item.timestamp.toMillis === "function") {
+              return item.timestamp.toMillis();
+            }
+            if (item.dato) {
+              const parsed = new Date(item.dato).getTime();
+              return Number.isNaN(parsed) ? 0 : parsed;
+            }
+            return 0;
+          };
+
+          docs.sort((a, b) => getSortTime(b) - getSortTime(a));
+
+          sjaList = docs;
+          renderArchive();
+        },
+        (error) => {
+          console.error("Feil ved henting av SJA-arkiv:", error);
+          archiveErrorEl.textContent = "Kunne ikke laste SJA-arkivet fra databasen. Kontroller internettilkobling eller tilgangsrettigheter.";
+          archiveErrorEl.classList.remove("hidden");
+        }
+      );
+    }
+
+    // Hendelser
+    tabBtnNy.addEventListener("click", () => switchTab("ny"));
+    tabBtnArkiv.addEventListener("click", () => switchTab("arkiv"));
+
+    document.getElementById("btn-go-archive").addEventListener("click", () => {
+      saveSuccessBanner.classList.add("hidden");
+      switchTab("arkiv");
+    });
+
+    document.getElementById("btn-reset-form").addEventListener("click", () => resetForm(false));
+
+    inputGodkjent.addEventListener("change", () => {
+      btnSubmitSja.disabled = !inputGodkjent.checked;
+    });
+
+    archiveSearch.addEventListener("input", renderArchive);
+    archiveFilterArea.addEventListener("change", renderArchive);
+
+    btnCloseModal.addEventListener("click", closeModal);
+    detailModal.addEventListener("click", (event) => {
+      if (event.target === detailModal) closeModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !detailModal.classList.contains("hidden")) {
+        closeModal();
+      }
+    });
+
+    btnPrintSja.addEventListener("click", () => {
+      if (!selectedSja) return;
+      preparePrintView(selectedSja);
+      const pdfResult = generateSjaPdf(selectedSja);
+      if (pdfResult) {
+        const statusEl = document.getElementById("modal-pdf-status");
+        const nameEl = document.getElementById("modal-pdf-filename");
+        const againEl = document.getElementById("modal-pdf-download-again");
+        if (statusEl && nameEl && againEl) {
+          nameEl.textContent = `PDF generert: ${pdfResult.filename}`;
+          againEl.href = pdfResult.blobUrl;
+          againEl.download = pdfResult.filename;
+          statusEl.classList.remove("hidden");
+        }
+      } else {
+        window.print();
+      }
+    });
+
+    const btnDirectPrint = document.getElementById("btn-direct-print");
+    if (btnDirectPrint) {
+      btnDirectPrint.addEventListener("click", () => {
+        if (!selectedSja) return;
+        preparePrintView(selectedSja);
+        const originalTitle = document.title;
+        const safeTask = (selectedSja.arbeidsoppgave || "SJA-skjema").replace(/[\\/:*?"<>|]/g, "-");
+        const dateSuffix = selectedSja.dato ? ` (${selectedSja.dato})` : "";
+        document.title = `SJA - ${safeTask}${dateSuffix}`;
+        const restoreTitle = () => {
+          document.title = originalTitle;
+          window.removeEventListener("afterprint", restoreTitle);
+        };
+        window.addEventListener("afterprint", restoreTitle);
+        window.print();
+        setTimeout(restoreTitle, 1500);
+      });
+    }
+
+    btnUseTemplate.addEventListener("click", () => {
+      if (!selectedSja) return;
+      inputDato.value = getTodayDateString();
+      inputOppgave.value = selectedSja.arbeidsoppgave || "";
+      inputOmrade.value = selectedSja.omrade || "";
+      inputDeltakere.value = selectedSja.deltakere || "";
+      inputAnsvarlig.value = selectedSja.ansvarlig || "";
+      inputFarer.value = selectedSja.farer || "";
+      inputTiltak.value = selectedSja.tiltak || "";
+
+      if (Array.isArray(selectedSja.sjekkliste) && selectedSja.sjekkliste.length === CHECKLIST_ITEMS.length) {
+        checklistState = selectedSja.sjekkliste.map((item) => Boolean(item && item.checked));
+      } else {
+        checklistState = CHECKLIST_ITEMS.map(() => false);
+      }
+      renderChecklist();
+
+      inputGodkjent.checked = false;
+      btnSubmitSja.disabled = true;
+      saveSuccessBanner.classList.add("hidden");
+      templateBanner.classList.remove("hidden");
+
+      closeModal();
+      switchTab("ny");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    sjaForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!inputGodkjent.checked || !currentUser) return;
+
+      formErrorBanner.classList.add("hidden");
+      saveSuccessBanner.classList.add("hidden");
+
+      btnSubmitSja.disabled = true;
+      btnSubmitSja.innerHTML = `<span>Lagrer SJA...</span>`;
+
+      const payload = {
+        dato: inputDato.value,
+        arbeidsoppgave: inputOppgave.value.trim(),
+        omrade: inputOmrade.value,
+        deltakere: inputDeltakere.value.trim(),
+        ansvarlig: inputAnsvarlig.value.trim(),
+        sjekkliste: CHECKLIST_ITEMS.map((label, idx) => ({
+          label,
+          checked: Boolean(checklistState[idx])
+        })),
+        farer: inputFarer.value.trim(),
+        tiltak: inputTiltak.value.trim(),
+        godkjent: true,
+        opprettetAv: currentUser.email || currentUser.uid,
+        opprettetAvUid: currentUser.uid,
+        createdAt: serverTimestamp()
+      };
+
+      try {
+        await addDoc(collection(db, "sja"), payload);
+        resetForm(true);
+        saveSuccessBanner.classList.remove("hidden");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (error) {
+        console.error("Feil ved lagring av SJA:", error);
+        formErrorBanner.textContent = "Kunne ikke lagre SJA-skjemaet. Kontroller tilkoblingen og prøv igjen.";
+        formErrorBanner.classList.remove("hidden");
+        btnSubmitSja.disabled = !inputGodkjent.checked;
+      } finally {
+        btnSubmitSja.innerHTML = `<span>Lagre og godkjenn SJA</span>`;
+      }
+    });
+
+    // Init
+    inputDato.value = getTodayDateString();
+    renderChecklist();
+
+    // Autentiseringssjekk
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      currentUser = user;
+      userEmailEl.textContent = user.email || "";
+      loadingScreen.classList.add("hidden");
+      appShell.classList.remove("hidden");
+      subscribeToArchive();
+    });
+  </script>
+</body>
+</html>
